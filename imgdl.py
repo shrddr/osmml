@@ -99,8 +99,9 @@ def gettiles(session, latlng, z=19, flip=True):
     return crop
 
 if __name__ == "__main__":
-    lamps = loaders.readjson('in4.json')
-#    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739)
+#    lamps = loaders.readjson('in4.json')
+#    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739) # north belt
+    lamps = loaders.bbox(27.4026,53.8306,27.7003,53.9739) # whole 10k
     sess = requests.session()
     
     start = time.time()
