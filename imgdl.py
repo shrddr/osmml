@@ -6,6 +6,7 @@ import requests
 import io
 import time
 
+import layers
 import loaders
 from helpers import mil
 
@@ -70,7 +71,7 @@ def gettiles(session, layer, latlng, h, w, z=19):
             y = math.floor(y)
             if layer.flipy:
                 y = scale - y - 1
-            fname = layer.tilecache.format(z=z, x=x, y=y)
+            fname = layer.tilefile.format(z=z, x=x, y=y)
             
             if not os.path.isfile(fname):
                 url = layer.url.format(z=z, x=x, y=y)
@@ -91,7 +92,7 @@ def gettiles(session, layer, latlng, h, w, z=19):
 
 def getcrop(session, layer, latlng, h, w, z=19):
     # crops an image or returns existing cached crop
-    fname = layer.cropcache.format(lat=mil(latlng[0]), lng=mil(latlng[1]), z=z)
+    fname = layer.cropfile.format(lat=mil(latlng[0]), lng=mil(latlng[1]), z=z)
     if os.path.isfile(fname):
         crop = cv2.imread(fname)
         return crop
@@ -106,24 +107,17 @@ def getcrop(session, layer, latlng, h, w, z=19):
 class Imagery:
     def __init__(self):
         self.flipy = False
+        self.offsetx = 0
+        self.offsety = 0
     
 if __name__ == "__main__":
-    maxar = Imagery()   
-    maxar.url = "https://earthwatch.digitalglobe.com/earthservice/tmsaccess/tms/1.0.0/DigitalGlobe:ImageryTileService@EPSG:3857@jpg/{z}/{x}/{y}.jpg?connectId=91e57457-aa2d-41ad-a42b-3b63a123f54a"
-    maxar.flipy = True
-    maxar.tilecache = "./tiles/maxar/x{x}y{y}z{z}.jpg"
-    maxar.cropcache = "./crops/maxar/lat{lat}lng{lng}z{z}.jpg"
     
-    dg = Imagery()
-    dg.url = "https://a.tiles.mapbox.com/v4/digitalglobe.316c9a2e/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZGlnaXRhbGdsb2JlIiwiYSI6ImNqZGFrZ2c2dzFlMWgyd2x0ZHdmMDB6NzYifQ.9Pl3XOO82ArX94fHV289Pg"
-    dg.tilecache = "./tiles/dg/x{x}y{y}z{z}.jpg"
-    dg.cropcache = "./crops/dg/lat{lat}lng{lng}z{z}.jpg"
-    
-    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739) # north belt
-#    lamps = loaders.bbox(27.4026,53.8306,27.7003,53.9739) # whole 10k
+#    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739) # north belt
+#    lamps = loaders.bbox(27.5682,53.8469,27.5741,53.8688) # south radius
+    lamps = loaders.bbox(27.4026,53.8306,27.7003,53.9739) # whole 10k
     sess = requests.session()
         
     start = time.time()
     for lamp in lamps:
-        crop = getcrop(sess, dg, lamp, 256, 256)
+        crop = getcrop(sess, layers.dg, lamp, 256, 256)
     print(time.time() - start)
