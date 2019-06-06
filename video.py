@@ -5,7 +5,7 @@ FRAMESIZE = 256
 
 images = []
 i = 0
-for fname in glob.glob('./out/*.jpg'):
+for fname in glob.glob('./crops/dg/*.jpg'):
     img = cv2.imread(fname)
     
     x = 95
@@ -18,7 +18,7 @@ for fname in glob.glob('./out/*.jpg'):
     if i > 10000:
         break
     
-out = cv2.VideoWriter('./out.avi', cv2.VideoWriter_fourcc(*'DIVX'), 60, (FRAMESIZE,FRAMESIZE))
+out = cv2.VideoWriter('./dg.avi', cv2.VideoWriter_fourcc(*'DIVX'), 60, (FRAMESIZE,FRAMESIZE))
  
 for i in range(len(images)):
     out.write(images[i])
