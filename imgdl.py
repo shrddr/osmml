@@ -7,12 +7,13 @@ import io
 import time
 
 import loaders
+from helpers import mil
 
 TILESIZE = 256
 HALFSIZE = TILESIZE//2
 URL1 = "https://earthwatch.digitalglobe.com/earthservice/tmsaccess/tms/1.0.0/DigitalGlobe:ImageryTileService@EPSG:3857@jpg/{z}/{x}/{y}.jpg?connectId=91e57457-aa2d-41ad-a42b-3b63a123f54a"
 URL2 = "https://a.tiles.mapbox.com/v4/digitalglobe.316c9a2e/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZGlnaXRhbGdsb2JlIiwiYSI6ImNqZGFrZ2c2dzFlMWgyd2x0ZHdmMDB6NzYifQ.9Pl3XOO82ArX94fHV289Pg"
-TILEFILE = "./tiles/x{x}y{y}z{z}.jpg"
+TILEFILE = "./tiles/maxar/x{x}y{y}z{z}.jpg"
 OUTFILE = "./out/lat{lat}lng{lng}z{z}.jpg"
 
 def project2web(latlng):
@@ -40,7 +41,7 @@ def tiles_near(latlng, scale):
 
     return tiles, (px,py)
 
-def gettiles(session, latlng, z=19, flip=True):
+def getcrops(session, latlng, z=19, flip=True):
     # returns tiles around a location
     scale = 1 << z
     tiles, center = tiles_near(latlng, scale)
@@ -68,13 +69,11 @@ def gettiles(session, latlng, z=19, flip=True):
                 img = cv2.imread(fname)
                 imagerow.append(img)
             else:
-                raise Exception(f"{r.status_code} at {url}'")
+                raise IOError(f"{r.status_code} at {url}'")
                 
         images.append(imagerow)
-    
-    ilat = math.floor(latlng[0]*1000000)
-    ilng = math.floor(latlng[1]*1000000)
-    fname = OUTFILE.format(lat=ilat, lng=ilng, z=z)
+
+    fname = OUTFILE.format(lat=mil(latlng[0]), lng=mil(latlng[1]), z=z)
     if os.path.isfile(fname):
         crop = cv2.imread(fname)
         return crop
@@ -99,12 +98,11 @@ def gettiles(session, latlng, z=19, flip=True):
     return crop
 
 if __name__ == "__main__":
-#    lamps = loaders.readjson('in4.json')
-#    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739) # north belt
-    lamps = loaders.bbox(27.4026,53.8306,27.7003,53.9739) # whole 10k
+    lamps = loaders.bbox(27.4583,53.9621,27.5956,53.9739) # north belt
+#    lamps = loaders.bbox(27.4026,53.8306,27.7003,53.9739) # whole 10k
     sess = requests.session()
     
     start = time.time()
     for lamp in lamps:
-        crop = gettiles(sess, lamp)
+        crop = getcrops(sess, lamp)
     print(time.time() - start)
