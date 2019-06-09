@@ -9,36 +9,33 @@ import loaders
 def mil(fp):
     return math.floor(fp*1000000)
 
-def locate_tile(tx, ty, z=19):
-    # converts tileindex to EPSG:3857 (0..1) then to EPSG:4326 (degrees)
-    scale = 1 << z
-    x = tx / scale
-    y = ty / scale
-    lng = 180 * (2 * x - 1)   
-    lat = 180 / math.pi * (2 * math.atan( math.exp( (1 - 2 * y) * math.pi )) - math.pi / 2)
+def osm_at_tile(tx, ty, z=19):
+    # returns a link to open iD editor at specified tile
+    lat, lng = layers.wgs_at_tile(tx, ty, z)
     print(f"https://www.openstreetmap.org/edit#map={z}/{lat}/{lng}")
-    return (lat,lng)
 
 class MercatorPainter:
     # paints an area with dots and lines representing positive examples.
     # everything not painted over is supposed to be negative.
-    # uses dict for fast lookup (builds itself on first query)
-    # also has a random shot
+    # uses dict for fast lookup (builds itself on first query).
+    # also has a function to find a random negative (unpainted) pixel.
     def __init__(self, W, S, E, N):   
-        txmin, tymin = layers.tile_at((N, W))
-        txmax, tymax = layers.tile_at((S, E))
+        txmin, tymin = layers.tile_at_wgs((N, W))
+        txmax, tymax = layers.tile_at_wgs((S, E))
         area = (txmax-txmin, tymax-tymin)
         print(f"paint area: {txmin}..{txmax}, {tymin}..{tymax}")
         print(f"dimensions: {area} -> {area[0]*area[1]} tiles total")
         
         self.txmin = txmin
         self.tymin = tymin
-        self.canvas = np.zeros((tymax-tymin+1, txmax-txmin+1), np.uint8)
+        self.width = txmax-txmin+1
+        self.height = tymax-tymin+1
+        self.canvas = np.zeros((self.height, self.width), np.uint8)
         
         self.dict = None
     
     def wgs2px(self, latlng):
-        tx, ty = layers.tile_at(latlng)
+        tx, ty = layers.tile_at_wgs(latlng)
         x = tx - self.txmin
         y = ty - self.tymin
         return (x,y)
@@ -71,10 +68,9 @@ class MercatorPainter:
     
     def reindex(self):
         d = {}
-        h, w = self.canvas.shape
-        for y in range(h):
+        for y in range(self.height):
             ty = self.tymin + y
-            for x in range(w):
+            for x in range(self.width):
                 tx = self.txmin + x
                 if self.canvas[y][x] == 255:
                     if tx in d:
@@ -85,22 +81,29 @@ class MercatorPainter:
             d[k] = set(d[k])
         self.dict = d
         
-    def contains(self, tile):
+    def contains(self, tile, result_outside=True):
         if self.dict is None:
             self.reindex()
 
         tx, ty = tile
+        
+        if tx < self.txmin or ty < self.tymin:
+            return result_outside
+        if tx >= self.txmin + self.width:
+            return result_outside
+        if ty >= self.tymin + self.height:
+            return result_outside
+        
         if tx in self.dict:
             if ty in self.dict[tx]:
                 return True
         return False
     
-    def find_random(self):
-        h, w = self.canvas.shape
-        
+    def find_random(self):     
+        # that's dumb maybe just walk through the dict?
         while True: 
-            tx = random.randrange(self.txmin, self.txmax+w) # that's dumb maybe just walk through the dict?
-            ty = random.randrange(self.tymin, self.tymax+h)
+            tx = random.randrange(self.txmin, self.txmax+self.width) 
+            ty = random.randrange(self.tymin, self.tymax+self.height)
             tile = (tx, ty) 
             if self.contains(tile):
                 continue
@@ -117,8 +120,8 @@ if __name__ == "__main__":
     mp.add_dots(lamps)  
     
     for nodes in roads.values():
-        mp.add_polyline(nodes, width=1)
+        mp.add_polyline(nodes, width=2)
        
     mp.show()
 
-    print(mp.contains((302116, 168700)))
+    print(mp.contains((302304, 168755)))

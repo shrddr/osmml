@@ -40,9 +40,13 @@ def query_ways(W, S, E, N):
     api = overpass.API()
     query = f"""(
         way["highway"="trunk"]({S}, {W}, {N}, {E});
+        way["highway"="trunk_link"]({S}, {W}, {N}, {E});
         way["highway"="primary"]({S}, {W}, {N}, {E});
+        way["highway"="primary_link"]({S}, {W}, {N}, {E});
         way["highway"="secondary"]({S}, {W}, {N}, {E});
         way["highway"="tertiary"]({S}, {W}, {N}, {E});
+        way["highway"="residential"]({S}, {W}, {N}, {E});
+        way["highway"="unclassified"]({S}, {W}, {N}, {E});
     );
     out skel;
     >;
