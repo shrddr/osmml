@@ -1,13 +1,14 @@
 import io
 import cv2
 import math
+import time
 import os.path
 import requests
 import numpy as np
 from pathlib import Path
 
 TILESIZE = 256
-
+    
 def project2web(latlng):
     # converts EPSG:4326 (degrees) to EPSG:3857 (metres)
     siny = math.sin(latlng[0] * math.pi / 180)
@@ -56,10 +57,10 @@ def tiles_near(latlng, scale, h, w):
     return tiles, (rx,ry)
 
 def gettile(layer, latlng, z=19):
-    # returns one tile as cv2 image
+    # returns one tile as filename
     x,y = tile_at(latlng, z)
-    img = layer.download(x, y, z)
-    return img
+    fname = layer.download(x, y, z)
+    return fname
     
 def gettiles(layer, latlng, h, w, z=19):
     # returns imagery around a location (full tiles, combined)
@@ -74,7 +75,8 @@ def gettiles(layer, latlng, h, w, z=19):
     for row in tiles:
         tx = 0
         for (x,y) in row:
-            img = layer.download(x, y, z)
+            fname = layer.download(x, y, z)
+            img = cv2.imread(fname)
             result[ty:ty+TILESIZE, tx:tx+TILESIZE, :] = img
             tx += TILESIZE           
         ty += TILESIZE
@@ -83,20 +85,23 @@ def gettiles(layer, latlng, h, w, z=19):
 
 class Imagery:
     
-    def __init__(self, name, session):
+    def __init__(self, name):
         self.name = name
-        self.session = session
+        self.session = requests.session()
         self.flipy = False
         self.offsetx = 0
         self.offsety = 0
-        
-    def download(self, x, y, z=19):
+    
+    def tileurl(self, x, y, z):
         scale = 1 << z
         if self.flipy:
             y = scale - y - 1
+        return self.url.format(z=z, x=x, y=y)
+    
+    def download(self, x, y, z=19):
         fname = self.tilefile.format(z=z, x=x, y=y)
         if not os.path.isfile(fname):
-            url = self.url.format(z=z, x=x, y=y)
+            url = self.tileurl(x, y, z)
             print("downloading")
             r = self.session.get(url)
             if r.status_code == 200:
@@ -104,23 +109,21 @@ class Imagery:
                     file.write(r.content)
             else:
                 raise IOError(f"{r.status_code} at {url}'")
-        img = cv2.imread(fname)
-        return img
-        
-sess = requests.session()
+        return fname
 
-maxar = Imagery("maxar", sess)   
+
+maxar = Imagery("maxar")   
 maxar.url = "https://earthwatch.digitalglobe.com/earthservice/tmsaccess/tms/1.0.0/DigitalGlobe:ImageryTileService@EPSG:3857@jpg/{z}/{x}/{y}.jpg?connectId=91e57457-aa2d-41ad-a42b-3b63a123f54a"
 maxar.flipy = True
 maxar.offsetx = -30
 maxar.offsety = 10
 maxar.tiledir = Path("tiles/maxar")
 maxar.tilefile = "./tiles/maxar/x{x}y{y}z{z}.jpg"
-maxar.cropdir = Path("./crops/maxar")
+maxar.cropdir = Path("crops/maxar")
 maxar.cropfile = "./crops/maxar/lat{lat}lng{lng}z{z}.jpg"
 
-dg = Imagery("dg", sess)
-dg.url = "https://a.tiles.mapbox.com/v4/digitalglobe.316c9a2e/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZGlnaXRhbGdsb2JlIiwiYSI6ImNqZGFrZ2c2dzFlMWgyd2x0ZHdmMDB6NzYifQ.9Pl3XOO82ArX94fHV289Pg"
+dg = Imagery("dg")
+dg.url = "https://c.tiles.mapbox.com/v4/digitalglobe.316c9a2e/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZGlnaXRhbGdsb2JlIiwiYSI6ImNqZGFrZ2c2dzFlMWgyd2x0ZHdmMDB6NzYifQ.9Pl3XOO82ArX94fHV289Pg"
 dg.tiledir = Path("tiles/dg")
 dg.tilefile = "./tiles/dg/x{x}y{y}z{z}.jpg"
 dg.cropdir = Path("crops/dg")

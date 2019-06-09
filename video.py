@@ -49,8 +49,8 @@ def list2vid(lamps, layer):
     out.release()
 
 if __name__ == "__main__":
-    dir2vid(layers.maxar)
-    dir2vid(layers.dg)
+#    dir2vid(layers.maxar)
+#    dir2vid(layers.dg)
 #    lamps = loaders.bbox(27.5682,53.8469,27.5741,53.8688)
 #    list2vid(lamps, layers.maxar)
 #    list2vid(lamps, layers.dg)
