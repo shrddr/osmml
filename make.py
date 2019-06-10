@@ -11,7 +11,7 @@ import tarfile
 
 # use one original tile or expand it for later cropping
 MAKE_POSITIVE_ORIGINAL = 0
-MAKE_POSITIVE_EXPANDED = 0
+MAKE_POSITIVE_EXPANDED = 1
 MAKE_NEGATIVE_ORIGINAL = 0
 MAKE_NEGATIVE_EXPANDED = 1
 
@@ -22,8 +22,17 @@ TILESIZE = 256
 # known satellite imagery has up to 40px offset.
 # maximum acceptable padding is (128-40)=88
 # which translates to image size 256+88*2=432
-PADDING = 88
+PADDING = 51
 
+# if you want to train faster
+LIMIT = 5000
+
+def cleandir(path):
+    target = pathlib.Path(path)
+    shutil.rmtree(target)
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+    
 if __name__ == "__main__": 
 #    box = (27.4583,53.9621,27.5956,53.9739) # north belt
 #    box = (27.5682,53.8469,27.5741,53.8688) # south radius
@@ -32,13 +41,13 @@ if __name__ == "__main__":
     # MAKE POSITIVES
     
     lamps = loaders.query_nodes(*box)
-    print("lamps:", len(lamps))
+    print("lamps in box:", len(lamps))
+    random.shuffle(lamps)
+    lamps = lamps[:LIMIT]
     
     if MAKE_POSITIVE_ORIGINAL: 
         # only use one tile where lamp exists
-        target = pathlib.Path('lamps-orig/lamp')
-        target.mkdir(parents=True, exist_ok=True)
-        
+        target = cleandir('lamps-orig/lamp')
         for lamp in lamps:
             fname = layers.maxar.gettile_wgs(lamp, skipedge=True)
             if fname is not None:
@@ -48,9 +57,7 @@ if __name__ == "__main__":
     if MAKE_POSITIVE_EXPANDED:
         # use a bigger picture, centered at the object, 
         # for later random cropping (augmentation)
-        target = pathlib.Path('lamps-center/lamp')
-        target.mkdir(parents=True, exist_ok=True)
-        
+        target = cleandir('lamps-center/lamp')
         for lamp in lamps:        
             h = w = PADDING + TILESIZE + PADDING
             crop = layers.maxar.getcrop_wgs(lamp, h, w)
@@ -88,8 +95,7 @@ if __name__ == "__main__":
 
     if MAKE_NEGATIVE_ORIGINAL: 
         # only use one tile
-        target = pathlib.Path('lamps-orig/nolamp')
-        target.mkdir(parents=True, exist_ok=True) 
+        target = cleandir('lamps-orig/nolamp')
         for (tx,ty) in batch:
             fname = layers.maxar.download(tx,ty)
             dst = target / ("m_" + os.path.basename(fname))
@@ -97,8 +103,7 @@ if __name__ == "__main__":
         
     if MAKE_NEGATIVE_EXPANDED:
         # expand the tile for later cropping
-        target = pathlib.Path('lamps-center/nolamp')
-        target.mkdir(parents=True, exist_ok=True) 
+        target = cleandir('lamps-center/nolamp')
         for (tx,ty) in batch:
             wgs = layers.wgs_at_tile(tx, ty)
             h = w = PADDING + TILESIZE + PADDING
