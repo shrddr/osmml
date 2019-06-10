@@ -19,13 +19,14 @@ class MercatorPainter:
     # everything not painted over is supposed to be negative.
     # uses dict for fast lookup (builds itself on first query).
     # also has a function to find a random negative (unpainted) pixel.
-    def __init__(self, W, S, E, N):   
-        txmin, tymin = layers.tile_at_wgs((N, W))
-        txmax, tymax = layers.tile_at_wgs((S, E))
+    def __init__(self, layer, W, S, E, N):   
+        txmin, tymin = layer.tile_at_wgs((N, W))
+        txmax, tymax = layer.tile_at_wgs((S, E))
         area = (txmax-txmin, tymax-tymin)
         print(f"paint area: {txmin}..{txmax}, {tymin}..{tymax}")
         print(f"dimensions: {area} -> {area[0]*area[1]} tiles total")
         
+        self.layer = layer
         self.txmin = txmin
         self.tymin = tymin
         self.width = txmax-txmin+1
@@ -35,7 +36,7 @@ class MercatorPainter:
         self.dict = None
     
     def wgs2px(self, latlng):
-        tx, ty = layers.tile_at_wgs(latlng)
+        tx, ty = self.layer.tile_at_wgs(latlng)
         x = tx - self.txmin
         y = ty - self.tymin
         return (x,y)
@@ -46,18 +47,18 @@ class MercatorPainter:
         y = ty - self.tymin
         self.canvas[y][x] = color
             
-    def add_dots(self, latlngs, color=255):
+    def add_dots_wgs(self, latlngs, color=255):
         for latlng in latlngs:
             x, y = self.wgs2px(latlng)
             self.canvas[y][x] = color
             
-    def add_line(self, latlng1, latlng2, width):
+    def add_line_wgs(self, latlng1, latlng2, width):
         # the lines are actually curves in mercator but we don't care
         p1 = self.wgs2px(latlng1)
         p2 = self.wgs2px(latlng2)
         cv2.line(self.canvas, p1, p2, 255, width)
     
-    def add_polyline(self, latlngs, width):
+    def add_polyline_wgs(self, latlngs, width):
         pixels = [self.wgs2px(l) for l in latlngs]
         pixels = np.array(pixels)
         cv2.polylines(self.canvas, [pixels], False, 255, width)
@@ -108,6 +109,7 @@ class MercatorPainter:
             if self.contains(tile):
                 continue
             else:
+                self.add_dot_tile(tile)
                 return tile
         
 if __name__ == "__main__":

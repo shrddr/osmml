@@ -1,12 +1,7 @@
 import overpass
 import json
 import os.path
-import time
-import datetime
 from math import floor
-
-import helpers
-import layers
 
 def mil(fp):
     return floor(fp*1000000)
@@ -14,13 +9,13 @@ def mil(fp):
 def query_nodes(W, S, E, N):
     # queries overpass or fetches cached result if available
     # returns list of (lat, lng) tuples
-    fname = f"./in/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}.json"
+    fname = f"./overpass/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}.json"
     if os.path.isfile(fname):
         with open(fname) as json_file:
             return json.load(json_file)
     
     api = overpass.API()
-    query = f"node[\"highway\"=\"street_lamp\"]({S}, {W}, {N}, {E})"
+    query = f"""node["highway"="street_lamp"]({S}, {W}, {N}, {E})"""
     response = api.get(query, responseformat='json', verbosity='skel')
     
     nodes = [(e['lat'], e['lon']) for e in response['elements']]
@@ -32,7 +27,7 @@ def query_nodes(W, S, E, N):
 
 
 def query_ways(W, S, E, N):
-    fname = f"./in/ways_bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}.json"
+    fname = f"./overpass/ways_bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}.json"
     if os.path.isfile(fname):
         with open(fname) as json_file:
             return json.load(json_file)
@@ -74,6 +69,5 @@ def query_poly(bounds):
     # https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#Polygon_evaluator
     pass
         
-
 if __name__ == "__main__":   
     pass

@@ -10,7 +10,10 @@ import helpers
 import tarfile
 
 # use one original tile or expand it for later cropping
-ORIGINAL = False
+MAKE_POSITIVE_ORIGINAL = 0
+MAKE_POSITIVE_EXPANDED = 0
+MAKE_NEGATIVE_ORIGINAL = 0
+MAKE_NEGATIVE_EXPANDED = 1
 
 # this is 256 for all current imagery providers
 TILESIZE = 256
@@ -19,7 +22,7 @@ TILESIZE = 256
 # known satellite imagery has up to 40px offset.
 # maximum acceptable padding is (128-40)=88
 # which translates to image size 256+88*2=432
-PADDING = 50
+PADDING = 88
 
 if __name__ == "__main__": 
 #    box = (27.4583,53.9621,27.5956,53.9739) # north belt
@@ -31,19 +34,20 @@ if __name__ == "__main__":
     lamps = loaders.query_nodes(*box)
     print("lamps:", len(lamps))
     
-    if ORIGINAL: 
-        # only use one tile where lamp exists. should fail
-        # miserably when the lamp is on the edge of tile
+    if MAKE_POSITIVE_ORIGINAL: 
+        # only use one tile where lamp exists
         target = pathlib.Path('lamps-orig/lamp')
         target.mkdir(parents=True, exist_ok=True)
         
         for lamp in lamps:
-            fname = layers.maxar.gettile_wgs(lamp)
-            dst = target / ("m_" + os.path.basename(fname))
-            shutil.copy(fname, dst)
+            fname = layers.maxar.gettile_wgs(lamp, skipedge=True)
+            if fname is not None:
+                dst = target / ("m_" + os.path.basename(fname))
+                shutil.copy(fname, dst)
 
-    else:
-        # use a bigger picture for later random cropping (augmentation)
+    if MAKE_POSITIVE_EXPANDED:
+        # use a bigger picture, centered at the object, 
+        # for later random cropping (augmentation)
         target = pathlib.Path('lamps-center/lamp')
         target.mkdir(parents=True, exist_ok=True)
         
@@ -61,11 +65,11 @@ if __name__ == "__main__":
     
     BATCHSIZE = len(lamps)
     
-    mp = helpers.MercatorPainter(*box)
-    mp.add_dots(lamps)
+    mp = helpers.MercatorPainter(layers.maxar, *box)
+    mp.add_dots_wgs(lamps)
     roads = loaders.query_ways(*box)
     for nodes in roads.values():
-        mp.add_polyline(nodes, width=2)
+        mp.add_polyline_wgs(nodes, width=2)
     
     source = layers.maxar.tiledir
     localtiles = [layers.maxar.xy_fromfile(path) for path in source.glob("*.jpg")]
@@ -82,9 +86,8 @@ if __name__ == "__main__":
         while BATCHSIZE > len(batch):
             batch.append(mp.find_random())
 
-    if ORIGINAL: # only use one tile
-        # TODO: discard if lamp is close to the edge
-        # TODO: handle imagery offset
+    if MAKE_NEGATIVE_ORIGINAL: 
+        # only use one tile
         target = pathlib.Path('lamps-orig/nolamp')
         target.mkdir(parents=True, exist_ok=True) 
         for (tx,ty) in batch:
@@ -92,20 +95,20 @@ if __name__ == "__main__":
             dst = target / ("m_" + os.path.basename(fname))
             shutil.copy(fname, dst)
         
-    else:
+    if MAKE_NEGATIVE_EXPANDED:
         # expand the tile for later cropping
         target = pathlib.Path('lamps-center/nolamp')
         target.mkdir(parents=True, exist_ok=True) 
         for (tx,ty) in batch:
             wgs = layers.wgs_at_tile(tx, ty)
-            h, w = (356, 356)
+            h = w = PADDING + TILESIZE + PADDING
             crop = layers.maxar.getcrop_wgs(wgs, h, w)
             lat = helpers.mil(wgs[0])
             lng = helpers.mil(wgs[1])
             dst = str(target / f"m_lat{lat}lng{lng}z19.jpg")
             cv2.imwrite(dst, crop)
     
-    if ORIGINAL:
+    if MAKE_POSITIVE_ORIGINAL and MAKE_NEGATIVE_ORIGINAL:
         tarball = "./lamps-orig.tar"
         if os.path.exists(tarball):
             os.remove(tarball)
@@ -113,7 +116,7 @@ if __name__ == "__main__":
         tar.add("./lamps-orig")
         tar.close()
     
-    else:
+    if MAKE_POSITIVE_EXPANDED and MAKE_NEGATIVE_EXPANDED:
         tarball = "./lamps-center.tar"
         if os.path.exists(tarball):
             os.remove(tarball)

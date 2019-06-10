@@ -16,14 +16,6 @@ def project2web(latlng):
     y = TILESIZE * (0.5 - math.log((1 + siny) / (1 - siny)) / (4 * math.pi))
     return (x, y)
 
-def tile_at_wgs(latlng, z=19):
-    # returns index of tile which contains a location
-    scale = 1 << z
-    wc = project2web(latlng)
-    tx = math.floor(wc[0] * scale / TILESIZE)
-    ty = math.floor(wc[1] * scale / TILESIZE)
-    return (tx,ty)
-
 def wgs_at_tile(tx, ty, z=19):
     # converts tile index to EPSG:3857 (0..1) then to EPSG:4326 (degrees)
     scale = 1 << z
@@ -41,7 +33,7 @@ class Imagery:
         self.flipy = False
         self.offsetx = 0
         self.offsety = 0
-        self.tiledir = Path("tiles") / name
+        self.tiledir = Path("../tiles") / name
     
     def tilefile(self, x, y, z):
         return self.tiledir / f"x{x}y{y}z{z}.jpg"
@@ -72,10 +64,42 @@ class Imagery:
                 raise IOError(f"{r.status_code} at {url}'")
         return str(fname)
     
-    def gettile_wgs(self, latlng, z=19):
+    def tile_at_wgs(self, latlng, z=19):
+        # returns index of tile which contains a location
+        scale = 1 << z
+        wc = project2web(latlng)
+        # pixel in world
+        px = wc[0] * scale + self.offsetx
+        py = wc[1] * scale + self.offsety
+        # tile in world
+        tx = math.floor(px / TILESIZE)
+        ty = math.floor(py / TILESIZE)
+        return (tx, ty)
+    
+    def gettile_wgs(self, latlng, z=19, skipedge=False):
         # returns tile at location (as filename)
-        x,y = tile_at_wgs(latlng, z)
-        fname = self.download(x, y, z)
+        # returns None if skipedge is enabled and location is indeed close to edge 
+        scale = 1 << z
+        wc = project2web(latlng)
+        # pixel in world
+        px = wc[0] * scale + self.offsetx
+        py = wc[1] * scale + self.offsety
+        # tile in world
+        tx = math.floor(px / TILESIZE)
+        ty = math.floor(py / TILESIZE)
+        # pixel in tile
+        rx = (px - tx) % TILESIZE
+        ry = (py - ty) % TILESIZE
+
+        if skipedge:
+            EDGE_THRESH = 10 # px
+            edge = (rx < EDGE_THRESH) or (rx >= TILESIZE-EDGE_THRESH) \
+                or (ry < EDGE_THRESH) or (ry >= TILESIZE-EDGE_THRESH)
+            if edge:
+                print("edge")
+                return None
+
+        fname = self.download(tx, ty, z)
         return fname
     
     def tiles_near_wgs(self, latlng, scale, h, w):
@@ -148,4 +172,4 @@ maxar.offsety = 10
 dg = Imagery("dg")
 dg.url = "https://c.tiles.mapbox.com/v4/digitalglobe.316c9a2e/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZGlnaXRhbGdsb2JlIiwiYSI6ImNqZGFrZ2c2dzFlMWgyd2x0ZHdmMDB6NzYifQ.9Pl3XOO82ArX94fHV289Pg"
 
-print(maxar.xy_fromfile(Path(r"tiles\maxar\x302117y168688z19.jpg")))
+print(maxar.xy_fromfile(Path(r"..\tiles\maxar\x302117y168688z19.jpg")))
