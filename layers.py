@@ -91,7 +91,7 @@ class Imagery:
         ty = math.floor(py / TILESIZE)
         return (tx, ty)
     
-    def gettile_wgs(self, latlng, z, skipedge=False):
+    def gettile_wgs(self, latlng, z, skipedge=False, edge=16):
         # returns tile at location (as filename)
         # returns None if skipedge is enabled and location is indeed close to edge 
         scale = 1 << z
@@ -107,9 +107,8 @@ class Imagery:
         ry = (py - ty) % TILESIZE
 
         if skipedge:
-            EDGE_THRESH = 10 # px
-            edge = (rx < EDGE_THRESH) or (rx >= TILESIZE-EDGE_THRESH) \
-                or (ry < EDGE_THRESH) or (ry >= TILESIZE-EDGE_THRESH)
+            edge = (rx < edge) or (rx >= TILESIZE-edge) \
+                or (ry < edge) or (ry >= TILESIZE-edge)
             if edge:
                 print("edge")
                 return None

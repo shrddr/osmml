@@ -46,7 +46,7 @@ if __name__ == "__main__":
     random.shuffle(lamps)
     lamps = lamps[:LIMIT]
     
-#    target = cleandir('lamps-expand/train/lamp')
+    target = cleandir('lamps-expand/train/lamp')
     target = cleandir('lamps-expand/lamp')
     for lamp in lamps:        
         h = w = EXPAND_PAD + TILESIZE + EXPAND_PAD
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     
     # PACK FOR UPLOAD
 
-    tarball = "./lamps-center.tar"
+    tarball = "./lamps-expand.tar"
     if os.path.exists(tarball):
         os.remove(tarball)
     tar = tarfile.open(tarball, "w")
-    tar.add("./lamps-center")
+    tar.add("./lamps-expand")
     tar.close()

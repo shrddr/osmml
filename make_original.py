@@ -14,7 +14,7 @@ import tarfile
 TILESIZE = 256
 
 # imagery zoom level
-IMZ = 18
+IMZ = 19
 
 # if you want to train faster
 LIMIT = 5000

@@ -12,15 +12,15 @@ Satellite imagery providers serve data in 256x256 tiles. The first approach is j
 
 The problem is some lamps are at the tile edge and possibly cross the boundary. Sometimes [imagery offset](https://wiki.openstreetmap.org/wiki/Using_Imagery#Frequent_mistakes) makes the object appear on a different tile than it should, which produces false positive example.
 
-What I did is drop all positive examples where the base of street lamp is less than 10px away from tile edge. Dealing with offset is tricky, as it depends on both imagery properties and OSM mappers in the area. I did eyeball an average offset for my area, but for other cities it can be anything. You can use `video.py` to do that, it lets you look through lots of imagery quickly.
+What I did is drop all positive examples where the base of street lamp is less than 16px away from tile edge. Dealing with offset is tricky, as it depends on both imagery properties and OSM mappers in the area. I did eyeball an average offset for my area, but for other cities it can be anything. You can use `video.py` to do that, it lets you look through lots of imagery quickly.
 
 ```
 from fastai.vision import *
 from fastai.metrics import error_rate
 
 path = # script output
-tfms = get_transforms(do_flip=False)
-data = ImageDataBunch.from_folder(path, train=".", valid_pct=0.1, ds_tfms=tfms, size=256)
+tfms = get_transforms(do_flip=False, max_warp=0, max_zoom=0, max_rotate=0)
+data = ImageDataBunch.from_folder(path, train=".", valid_pct=0.1, ds_tfms=tfms, size=224)
 learn = cnn_learner(data, models.resnet34, metrics=error_rate)
 # LR is learning rate, use learn.lr_find() to estimate
 learn.fit_one_cycle(1, max_lr=7e-2)
@@ -32,10 +32,10 @@ learn.fit_one_cycle(2, max_lr=slice(4e-7,4e-5))
 
 This dataset converges to 3% error. There must be another way to do this!
 
-|      | Frozen, 2 epoch train | Unfreeze, 4 epochs | 4 more | 4 more |
-| ---- | --------------------- | ------------------ | ------ | ------ |
-| z18  | 6.6-7.7%              | 5.0%               | 4.0%   | %      |
-| z19  | %                     | %                  | %      |        |
+|      | Frozen, 4 epoch train | Unfreeze, 4 epochs | 4 more   |
+| ---- | --------------------- | ------------------ | -------- |
+| z18  | 3.6-4.0%              | 3.4-4.0%           | 3.2-3.6% |
+| z19  | 4.6-5.3%              | 4.2-4.7%           | 4.1-4.7% |
 
 ## Expanded tiles
 
