@@ -1,18 +1,35 @@
-import math
 import cv2
+import math
 import random
+import shutil
+import os.path
+import pathlib
 import numpy as np
 
-import layers
-import loaders
+from lib import layers
+from lib import loaders
 
 def mil(fp):
     return math.floor(fp*1000000)
 
 def osm_at_tile(tx, ty, z):
-    # returns a link to open iD editor at specified tile
+    # prints a link to open iD editor at specified tile
     lat, lng = layers.wgs_at_tile(tx, ty, z)
     print(f"https://www.openstreetmap.org/edit#map={z}/{lat}/{lng}")
+
+def cleandir(path):
+    # removes a directory and creates it again
+    target = pathlib.Path(path)
+    if os.path.isdir(target):
+        shutil.rmtree(target)
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+def outside(point, lefttop, rightbot):
+    return point[0] < lefttop[0] \
+        or point[1] < lefttop[1] \
+        or point[0] >= rightbot[0] \
+        or point[1] >= rightbot[1]
 
 class MercatorPainter:
     # paints an area with dots and lines representing positive examples.

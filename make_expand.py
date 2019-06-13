@@ -1,13 +1,12 @@
-import pathlib
+import cv2
+import random
 import shutil
 import os.path
-import random
-import cv2
-
-import layers
-import loaders
-import helpers
 import tarfile
+
+from lib import layers
+from lib import loaders
+from lib import helpers
 
 # this is 256 for all current imagery providers
 TILESIZE = 256
@@ -26,13 +25,6 @@ TRAIN = 4000
 
 # validation images of each category
 VALID = 1000
-
-def cleandir(path):
-    target = pathlib.Path(path)
-    if os.path.isdir(target):
-        shutil.rmtree(target)
-    target.mkdir(parents=True, exist_ok=True)
-    return target
     
 if __name__ == "__main__":
 #    box = (27.4583,53.9621,27.5956,53.9739) # north belt
@@ -47,7 +39,7 @@ if __name__ == "__main__":
     train = lamps[:TRAIN]
     valid = lamps[TRAIN:]
     
-    target = cleandir('lamps-expand/train/lamp')
+    target = helpers.cleandir('lamps-expand/train/lamp')
     for lamp in train:        
         h = w = EXPAND_PAD + TILESIZE + EXPAND_PAD
         crop = layers.maxar.getcrop_wgs(lamp, h, w, IMZ)
@@ -57,7 +49,7 @@ if __name__ == "__main__":
         cv2.imwrite(dst, crop)
     
     
-    target = cleandir('lamps-expand/valid/lamp')
+    target = helpers.cleandir('lamps-expand/valid/lamp')
     count = 0
     it = iter(valid)
     while count < VALID:
@@ -83,7 +75,7 @@ if __name__ == "__main__":
     for i in range(VALID):
         data['v'].append(mp.random_negative())
 
-    target = cleandir('lamps-expand/train/nolamp')
+    target = helpers.cleandir('lamps-expand/train/nolamp')
     for (tx,ty) in data['t']:
         wgs = layers.wgs_at_tile(tx, ty, IMZ)
         h = w = EXPAND_PAD + TILESIZE + EXPAND_PAD
@@ -93,7 +85,7 @@ if __name__ == "__main__":
         dst = str(target / f"m_lat{lat}lng{lng}.jpg")
         cv2.imwrite(dst, crop)
         
-    target = cleandir('lamps-expand/valid/nolamp')
+    target = helpers.cleandir('lamps-expand/valid/nolamp')
     for (tx,ty) in data['v']:
         fname = layers.maxar.download(tx, ty, IMZ)
         if fname is not None:

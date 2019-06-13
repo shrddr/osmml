@@ -1,17 +1,17 @@
 import cv2
-import loaders
-import glob
-import imgdl
-import layers
+from pathlib import Path
+from lib import loaders
+from lib import layers
 
 FRAMESIZE = 256
 
-def dir2vid(layer):
+def dir2vid(path):
     images = []
     i = 0
-    for fname in layer.cropdir.glob("*.jpg"):
+    print(Path(path))
+    for fname in Path(path).glob("*.jpg"):
+        print(fname)
         img = cv2.imread(str(fname))
-
         x = 95
         y = 135
         cv2.line(img, (x,y), (x+10,y+10), (0,0,255), 1)
@@ -22,19 +22,17 @@ def dir2vid(layer):
         if i > 10000:
             break
         
-    out = cv2.VideoWriter(f"./all-{layer.name}.avi", cv2.VideoWriter_fourcc(*'DIVX'), 60, (FRAMESIZE,FRAMESIZE))
+    out = cv2.VideoWriter(f"./dir.avi", cv2.VideoWriter_fourcc(*'DIVX'), 60, (FRAMESIZE,FRAMESIZE))
      
     for i in range(len(images)):
         out.write(images[i])
     out.release()
     
-def list2vid(lamps, layer):
+def list2vid(lamps, layer, z):
     print(1)
     images = []
     for lamp in lamps:
-        print("getting crop")
-        img = imgdl.getcrop(None, layer, lamp, FRAMESIZE, FRAMESIZE)
-        print("painting")
+        img = layers.maxar.getcrop_wgs(lamp, FRAMESIZE, FRAMESIZE, z)
         x = 95
         y = 135
         cv2.line(img, (x,y), (x+10,y+10), (0,0,255), 1)
@@ -49,8 +47,8 @@ def list2vid(lamps, layer):
     out.release()
 
 if __name__ == "__main__":
-#    dir2vid(layers.maxar)
-#    dir2vid(layers.dg)
-#    lamps = loaders.bbox(27.5682,53.8469,27.5741,53.8688)
-#    list2vid(lamps, layers.maxar)
-#    list2vid(lamps, layers.dg)
+#    dir2vid(layers.maxar, 19)
+    dir2vid("lamps-expand/train/lamp")
+#    lamps = loaders.query_nodes(27.4026,53.8306,27.7003,53.9739)
+#    list2vid(lamps, layers.maxar, 19)
+#    list2vid(lamps, layers.dg, 19)

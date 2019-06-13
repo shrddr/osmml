@@ -1,14 +1,11 @@
-import pathlib
+import random
 import shutil
 import os.path
-import random
-import cv2
-
-import layers
-import loaders
-import helpers
 import tarfile
 
+from lib import layers
+from lib import loaders
+from lib import helpers
 
 # this is 256 for all current imagery providers
 TILESIZE = 256
@@ -18,13 +15,6 @@ IMZ = 19
 
 # if you want to train faster
 LIMIT = 5000
-
-def cleandir(path):
-    target = pathlib.Path(path)
-    if os.path.isdir(target):
-        shutil.rmtree(target)
-    target.mkdir(parents=True, exist_ok=True)
-    return target
     
 if __name__ == "__main__":
 #    box = (27.4583,53.9621,27.5956,53.9739) # north belt
@@ -38,7 +28,7 @@ if __name__ == "__main__":
     random.shuffle(lamps)
     lamps = lamps[:LIMIT]
     
-    target = cleandir('lamps-orig/lamp')
+    target = helpers.cleandir('lamps-orig/lamp')
     for lamp in lamps:
         fname = layers.maxar.gettile_wgs(lamp, IMZ, skipedge=True)
         if fname is not None:
@@ -57,7 +47,7 @@ if __name__ == "__main__":
     while len(batch) < LIMIT:
         batch.append(mp.random_negative())
 
-    target = cleandir('lamps-orig/nolamp')
+    target = helpers.cleandir('lamps-orig/nolamp')
     for (tx,ty) in batch:
         fname = layers.maxar.download(tx, ty, IMZ)
         if fname is not None:

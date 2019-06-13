@@ -53,8 +53,11 @@ class Imagery:
         
     def xy_fromfile(self, path):
         f = path.name
-        sx = f[1:7]
-        sy = f[8:14]
+        xpos = f.index('x')
+        ypos = f.index('y')
+        dpos = f.index('.')
+        sx = f[xpos+1:ypos]
+        sy = f[ypos+1:dpos]
         return (int(sx), int(sy))
         
     def tileurl(self, x, y, z):
