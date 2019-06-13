@@ -35,6 +35,7 @@ class MercatorPainter:
         self.canvas = np.zeros((self.height, self.width), np.uint8)
         
         self.dict = None
+        self.dups = []
     
     def wgs2px(self, latlng):
         tx, ty = self.layer.tile_at_wgs(latlng, self.z)
@@ -117,6 +118,7 @@ class MercatorPainter:
                 continue
             else:
                 self.add_dot_tile(tile)
+                self.dict[tx].add(ty)
                 return tile
         
 if __name__ == "__main__":

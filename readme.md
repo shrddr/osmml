@@ -60,13 +60,12 @@ The thing is, when I looked closer, all these runs had input data _resized_, not
 
 ### Random crop
 
-Training set cropping seems important for real-life applications, because input at inference time will include streetlamps at any part of a tile, not just center of it. The intuition behind that is the network should encounter as much variance in train data as possible. Validation is also cropped randomly to enforce accurate error calculation. Random cropping turned out tricky in fast.ai, here's what I came up with:
+Training set cropping seems important for real-life applications, because input at inference time will include streetlamps at any part of a tile, not just center of it. The intuition behind that is the network should encounter as much variance in train data as possible. Validation set still contains original tiles. Random cropping turned out tricky in fast.ai, here's what I came up with:
 
 ```
-# crops random 256x256 piece out of larger 
-# input image both at train and validation
-tfms = [[crop(size=256, row_pct=(0,1), col_pct=(0,1))],
-        [crop(size=256, row_pct=(0,1), col_pct=(0,1))]]
+# crops random 256x256 piece out of train images;
+# validation images are not transformed
+tfms = [[crop(size=256, row_pct=(0,1), col_pct=(0,1))], []]
 data = ImageDataBunch.from_folder(path, train=".", valid_pct=0.1, ds_tfms=tfms, size=None)
 ```
 

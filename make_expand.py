@@ -21,11 +21,11 @@ EXPAND_PAD = 0
 # imagery zoom level
 IMZ = 18
 
-# total images of each category
-LIMIT = 5000
+# train images of each category
+TRAIN = 4000
 
-# validation set share
-VALID = 0.2
+# validation images of each category
+VALID = 1000
 
 def cleandir(path):
     target = pathlib.Path(path)
@@ -44,19 +44,30 @@ if __name__ == "__main__":
     lamps = loaders.query_nodes(*box)
     print("lamps in box:", len(lamps))
     random.shuffle(lamps)
-    lamps = lamps[:LIMIT]
+    train = lamps[:TRAIN]
+    valid = lamps[TRAIN:]
     
     target = cleandir('lamps-expand/train/lamp')
-    target = cleandir('lamps-expand/lamp')
-    for lamp in lamps:        
+    for lamp in train:        
         h = w = EXPAND_PAD + TILESIZE + EXPAND_PAD
         crop = layers.maxar.getcrop_wgs(lamp, h, w, IMZ)
         lat = helpers.mil(lamp[0])
         lng = helpers.mil(lamp[1])
         dst = str(target / f"m_lat{lat}lng{lng}.jpg")
         cv2.imwrite(dst, crop)
-        
-#    target = cleandir('lamps-expand/valid/lamp')
+    
+    
+    target = cleandir('lamps-expand/valid/lamp')
+    count = 0
+    it = iter(valid)
+    while count < VALID:
+        lamp = next(it)
+        fname = layers.maxar.gettile_wgs(lamp, IMZ, skipedge=True)
+        if fname is not None:
+            dst = target / ("m_" + os.path.basename(fname))
+            if not os.path.exists(dst):
+                shutil.copy(fname, dst)
+                count += 1
     
     # MAKE NEGATIVES
     
@@ -66,14 +77,14 @@ if __name__ == "__main__":
     for nodes in roads.values():
         mp.add_polyline_wgs(nodes, width=2)
     
-    batch = []
-    while len(batch) < LIMIT:
-        batch.append(mp.random_negative())
+    data = { 't': [], 'v': [] }
+    for i in range(TRAIN):       
+        data['t'].append(mp.random_negative())
+    for i in range(VALID):
+        data['v'].append(mp.random_negative())
 
-
-#    target = cleandir('lamps-expand/train/nolamp')
-        target = cleandir('lamps-expand/nolamp')
-    for (tx,ty) in batch:
+    target = cleandir('lamps-expand/train/nolamp')
+    for (tx,ty) in data['t']:
         wgs = layers.wgs_at_tile(tx, ty, IMZ)
         h = w = EXPAND_PAD + TILESIZE + EXPAND_PAD
         crop = layers.maxar.getcrop_wgs(wgs, h, w, IMZ)
@@ -82,7 +93,12 @@ if __name__ == "__main__":
         dst = str(target / f"m_lat{lat}lng{lng}.jpg")
         cv2.imwrite(dst, crop)
         
-#    target = cleandir('lamps-expand/valid/lamp')
+    target = cleandir('lamps-expand/valid/nolamp')
+    for (tx,ty) in data['v']:
+        fname = layers.maxar.download(tx, ty, IMZ)
+        if fname is not None:
+            dst = target / ("m_" + os.path.basename(fname))
+            shutil.copy(fname, dst)
     
     # PACK FOR UPLOAD
 
