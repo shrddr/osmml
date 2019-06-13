@@ -9,7 +9,7 @@ import loaders
 def mil(fp):
     return math.floor(fp*1000000)
 
-def osm_at_tile(tx, ty, z=19):
+def osm_at_tile(tx, ty, z):
     # returns a link to open iD editor at specified tile
     lat, lng = layers.wgs_at_tile(tx, ty, z)
     print(f"https://www.openstreetmap.org/edit#map={z}/{lat}/{lng}")
@@ -19,13 +19,14 @@ class MercatorPainter:
     # everything not painted over is supposed to be negative.
     # uses dict for fast lookup (builds itself on first query).
     # also has a function to find a random negative (unpainted) pixel.
-    def __init__(self, layer, W, S, E, N):   
-        txmin, tymin = layer.tile_at_wgs((N, W))
-        txmax, tymax = layer.tile_at_wgs((S, E))
+    def __init__(self, layer, W, S, E, N, z):   
+        txmin, tymin = layer.tile_at_wgs((N, W), z)
+        txmax, tymax = layer.tile_at_wgs((S, E), z)
         area = (txmax-txmin, tymax-tymin)
         print(f"paint area: {txmin}..{txmax}, {tymin}..{tymax}")
         print(f"dimensions: {area} -> {area[0]*area[1]} tiles total")
         
+        self.z = z
         self.layer = layer
         self.txmin = txmin
         self.tymin = tymin
@@ -34,9 +35,10 @@ class MercatorPainter:
         self.canvas = np.zeros((self.height, self.width), np.uint8)
         
         self.dict = None
+        self.dups = []
     
     def wgs2px(self, latlng):
-        tx, ty = self.layer.tile_at_wgs(latlng)
+        tx, ty = self.layer.tile_at_wgs(latlng, self.z)
         x = tx - self.txmin
         y = ty - self.tymin
         return (x,y)
@@ -100,16 +102,23 @@ class MercatorPainter:
                 return True
         return False
     
-    def find_random(self):     
+    def random_negative(self):     
         # that's dumb maybe just walk through the dict?
-        while True: 
-            tx = random.randrange(self.txmin, self.txmax+self.width) 
-            ty = random.randrange(self.tymin, self.tymax+self.height)
+        limit = 100
+        count = 0
+        while True:
+            count += 1
+            if count > limit:
+                raise ValueError("too much retries")
+
+            tx = random.randrange(self.txmin, self.txmin+self.width) 
+            ty = random.randrange(self.tymin, self.tymin+self.height)
             tile = (tx, ty) 
             if self.contains(tile):
                 continue
             else:
                 self.add_dot_tile(tile)
+                self.dict[tx].add(ty)
                 return tile
         
 if __name__ == "__main__":

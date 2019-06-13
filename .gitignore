@@ -1,6 +1,7 @@
 __pycache__/
 lamps-orig/
 lamps-center/
+lamps-expand/
 *.avi
 *.json
 *.tar
