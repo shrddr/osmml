@@ -236,7 +236,7 @@ class Imagery:
         crop = image[ymin:ymax, xmin:xmax, :]
         return crop
 
-    def tiles_way(self, way, z, pad_pct=0.3, pad_px=64):
+    def tiles_way(self, way, z, pad_pct=0.25, pad_px=48):
         # takes way as a list of nodes with WGS coords
         # takes relative (%) and absolute (px) padding
         # returns 2d array of tiles to cover the whole way plus padding

@@ -1,4 +1,4 @@
-## What's up?
+# Streetlamps
 
 These scripts prepare the data to teach a classification network which tells apart satellite imagery tiles with [streetlamp](https://wiki.openstreetmap.org/wiki/Tag:highway%3Dstreet_lamp)s or with no streetlamps. 
 
@@ -99,3 +99,14 @@ No resize and no crop leads to exceptional results:
 One specific input size is doing too well. 0.2% over 2000 validation images only gives 4 incorrect guesses! But that is pretty much expected for a task of detecting a dark vertical line. I did generate another batch of images of same size, and it also works wonders. But why is every other input image size performing so much worse?
 
 I have no idea what's going on, but it stops with any other `size` parameter value. Even though the training timing with `size=None` suggests it uses 299px images, `size=299` does not work the same. Looks like the resize is handled in some special way behind the scenes. Need to dig into fast.ai code to find the root cause.
+
+# Roofshapes
+
+|               | Frozen, 8 epoch train | Unfreeze, 8 epochs | 8 more epochs |
+| ------------- | --------------------- | ------------------ | ------------- |
+| 653/653/653   | 6.7%                  | 6.5%               | 5.8%          |
+| 681/681/681   |                       |                    |               |
+| 653/1400/4300 | 4.1%                  | 4.1%               | 3.5%          |
+| 681/1459/4322 |                       |                    |               |
+|               |                       |                    |               |
+|               |                       |                    |               |
