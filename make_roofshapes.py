@@ -1,7 +1,8 @@
 import cv2
 import time
-import os.path
 import math
+import os.path
+import random
 import tarfile
 
 from lib import layers
@@ -31,11 +32,14 @@ if __name__ == "__main__":
     
         
     IMZ = 18
-    LIMIT = counts[0][1] # this will limit all categories to the smallest one
+    LIMIT = None
+    LIMIT = counts[0][1] # use smallest category size to limit others
     for cat,count in counts:
         target = helpers.cleandir(f"roofshapes/{cat}")
-        random.shuffle(ways[cat])
-        for wayid, nodes in ways[cat][:LIMIT]:
+#        random.shuffle(ways[cat])
+        if LIMIT is not None:
+            ways[cat] = ways[cat][:LIMIT]
+        for wayid, nodes in ways[cat]:
             image = layers.maxar.tiles_way(nodes, IMZ)
 #            print(image.shape)
 #            if helpers.outside(image.shape[:2], (50,50), (500,500)):

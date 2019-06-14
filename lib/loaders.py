@@ -78,8 +78,8 @@ class Querier:
     def get(self, query, **kwargs):
         if not self.lasttime is None:
             passed = time.time() - self.lasttime
-            if passed < 1.0:
-                time.sleep(1.0 - passed)
+            if passed < 2.0:
+                time.sleep(2.0 - passed)
         response = self.api.get(query, **kwargs)
         self.lasttime = time.time()
         return response
