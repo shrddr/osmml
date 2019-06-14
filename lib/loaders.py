@@ -1,10 +1,11 @@
-import overpass
+import math
+import time
 import json
 import os.path
-from math import floor
+import overpass
 
 def mil(fp):
-    return floor(fp*1000000)
+    return math.floor(fp*1000000)
 
 def query_nodes(W, S, E, N):
     # queries overpass or fetches cached result if available
@@ -68,6 +69,51 @@ def query_poly(bounds):
     # returns points enclosed by a polygon
     # https://wiki.openstreetmap.org/wiki/Overpass_API/Overpass_QL#Polygon_evaluator
     pass
+
+class Querier:
+    def __init__(self):
+        self.api = overpass.API()
+        self.lasttime = None
+    
+    def get(self, query, **kwargs):
+        if not self.lasttime is None:
+            passed = time.time() - self.lasttime
+            if passed < 1.0:
+                time.sleep(1.0 - passed)
+        response = self.api.get(query, **kwargs)
+        self.lasttime = time.time()
+        return response
+    
+    def query_shape(self, shape, W, S, E, N):
+        fname = f"./overpass/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}_{shape}.json"
+        if os.path.isfile(fname):
+            with open(fname) as json_file:
+                return json.load(json_file)
+            
+        query = f"""(
+          way["building"]["roof:shape"="{shape}"]({S}, {W}, {N}, {E});
+        );
+        out body;
+        >;
+        out skel;"""
+        response = self.get(query, responseformat='json', verbosity='skel')
+        
+        nodedict = {}
+        for e in response['elements']:
+            if e['type'] == 'node':
+                nodedict[e['id']] = (e['lat'], e['lon'])
+        
+        ways = []
+        for e in response['elements']:
+            if e['type'] == 'way':
+                wayid = e['id']
+                nodes = [nodedict[i] for i in e['nodes']]
+                ways.append((wayid, nodes))
+        
+        with open(fname, 'w') as json_file:
+            json.dump(ways, json_file)
+        
+        return ways
         
 if __name__ == "__main__":   
     pass

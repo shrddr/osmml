@@ -82,8 +82,25 @@ class Imagery:
 
         return str(fname)
     
+    def tile_at_wcu(self, x, y, z):
+        # takes point in unscaled world cords (0..TILESIZE)
+        # returns index of tile which contains the point
+        scale = 1 << z
+        wc = (x * scale, y * scale)
+        # pixel in world
+        px = wc[0] + self.offsetx * scale
+        py = wc[1] + self.offsety * scale
+        # tile in world
+        tx = math.floor(px / TILESIZE)
+        ty = math.floor(py / TILESIZE)
+        # pixel in tile
+        rx = px - tx * TILESIZE
+        ry = py - ty * TILESIZE
+        return tx, ty, rx, ry
+    
     def tile_at_wgs(self, latlng, z):
-        # returns index of tile which contains a location
+        # takes point in WGS coordinatres
+        # returns index of tile which contains the point
         scale = 1 << z
         wc = project2web(latlng)
         # pixel in world
@@ -120,7 +137,10 @@ class Imagery:
         return fname
     
     def tiles_near_wgs(self, latlng, scale, h, w):
-        # returns a 2d array of tile indices to download
+        # takes point in WGS coordinates
+        # takes height and width of viewport, px
+        # returns a 2d array of tile indices to cover the viewport
+        # returns position of point in the viewport, px
         wc = project2web(latlng)
         px = (wc[0] + self.offsetx) * scale 
         py = (wc[1] + self.offsety) * scale
@@ -152,6 +172,8 @@ class Imagery:
         return tiles, (rx,ry)
     
     def gettiles_wgs(self, latlng, h, w, z):
+        # takes point in WGS coordinates
+        # takes height and width of viewport, px
         # returns image around a location (whole tiles, combined)
         scale = 1 << z
         tiles, center = self.tiles_near_wgs(latlng, scale, h, w)
@@ -173,12 +195,75 @@ class Imagery:
         return result, center
     
     def getcrop_wgs(self, latlng, h, w, z):
-        # return image around a location (cropped exactly to h, w )
+        # takes point in WGS coordinates
+        # takes height and width of viewport, px
+        # return image around a location (cropped exactly to h, w)
         image, (cx,cy) = self.gettiles_wgs(latlng, h, w, z)
         print("cropping")
         crop = image[cy-h//2:cy+h//2, cx-w//2:cx+w//2, :]
         return crop
 
+    def tiles_box_wc(self, W, S, E, N, z):
+        # takes box corners in unscaled world coordinates (0..TILESIZE)
+        # returns a 2d array of tile indices to cover the box
+        txmin, tymin, pN, pW = self.tile_at_wcu(W, N, z)
+        txmax, tymax, pS, pE = self.tile_at_wcu(E, S, z)
+        
+        htiles = tymax-tymin+1
+        wtiles = txmax-txmin+1
+        image = np.zeros((htiles*TILESIZE, wtiles*TILESIZE, 3), dtype=np.uint8)
+        
+        py = 0
+        for ty in range(tymin, tymin+htiles):
+            px = 0
+            for tx in range(txmin, txmin+wtiles):
+                fname = self.download(tx, ty, z)
+                img = cv2.imread(fname)
+                image[py:py+TILESIZE, px:px+TILESIZE, :] = img
+                px += TILESIZE
+            py += TILESIZE
+        
+        xmin = round(pN)
+        ymin = round(pW)
+        xmax = round(px - TILESIZE + pS)
+        ymax = round(py - TILESIZE + pE)
+        
+#        cv2.line(image, (xmin,ymin), (xmin,ymax), (0,0,255), 1)
+#        cv2.line(image, (xmin,ymin), (xmax,ymin), (0,0,255), 1)
+#        cv2.imshow('canvas', image)
+#        cv2.waitKey(0)
+        print("cropping")
+        crop = image[ymin:ymax, xmin:xmax, :]
+        return crop
+
+    def tiles_way(self, way, z, pad_pct=0.2, pad_px=64):
+        # takes way as a list of nodes with WGS coords
+        # takes relative (%) and absolute (px) padding
+        # returns 2d array of tiles to cover the whole way plus padding
+        wcs = [project2web(p) for p in way]
+        xs = [wc[0] for wc in wcs]
+        ys = [wc[1] for wc in wcs]
+
+        W = min(xs)
+        E = max(xs)
+        N = min(ys)
+        S = max(ys)
+
+        pad_WE = (E-W) * pad_pct
+        pad_NS = (S-N) * pad_pct
+        
+        scale = 1 << z
+        if pad_WE * scale < pad_px:
+            pad_WE = pad_px / scale
+        if pad_NS * scale < pad_px:
+            pad_NS = pad_px / scale
+        
+        W -= pad_WE; W %= 256
+        E += pad_WE; E %= 256
+        N -= pad_NS; N %= 256
+        S += pad_NS; S %= 256
+        
+        return self.tiles_box_wc(W, S, E, N, z)
 
 maxar = Imagery("maxar")   
 maxar.url = "https://earthwatch.digitalglobe.com/earthservice/tmsaccess/tms/1.0.0/DigitalGlobe:ImageryTileService@EPSG:3857@jpg/{z}/{x}/{y}.jpg?connectId=91e57457-aa2d-41ad-a42b-3b63a123f54a"

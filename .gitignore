@@ -2,6 +2,7 @@ __pycache__/
 lamps-orig/
 lamps-center/
 lamps-expand/
+roofshapes/
 *.avi
 *.json
 *.tar
