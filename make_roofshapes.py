@@ -33,7 +33,7 @@ if __name__ == "__main__":
         
     IMZ = 18
     LIMIT = None
-    LIMIT = counts[0][1] # use smallest category size to limit others
+#    LIMIT = counts[0][1] # use smallest category size to limit others
     for cat,count in counts:
         target = helpers.cleandir(f"roofshapes/{cat}")
 #        random.shuffle(ways[cat])
@@ -42,13 +42,16 @@ if __name__ == "__main__":
         for wayid, nodes in ways[cat]:
             image = layers.maxar.tiles_way(nodes, IMZ)
 #            print(image.shape)
-#            if helpers.outside(image.shape[:2], (50,50), (500,500)):
-#                continue
+            if helpers.outside(image.shape[:2], (128,128), (1024,1024)):
+                continue
 #            cv2.imshow('crop', image)
 #            cv2.waitKey(0)
 #            cv2.destroyAllWindows()
-            dst = str(target / f"{wayid}.jpg")
+            dst = str(target / f"m{wayid}.jpg")
             cv2.imwrite(dst, image)
+#            image = layers.dg.tiles_way(nodes, IMZ)
+#            dst = str(target / f"d{wayid}.jpg")
+#            cv2.imwrite(dst, image)
             
     tarball = "./roofshapes.tar"
     if os.path.exists(tarball):

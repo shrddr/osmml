@@ -26,6 +26,7 @@ def cleandir(path):
     return target
 
 def outside(point, lefttop, rightbot):
+    # returns True if point is outside of the box defined by 2 corners
     return point[0] < lefttop[0] \
         or point[1] < lefttop[1] \
         or point[0] >= rightbot[0] \
