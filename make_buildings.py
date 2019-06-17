@@ -41,15 +41,24 @@ if __name__ == "__main__":
     target = helpers.cleandir(f"buildings/no")
     
     train = []
-    TRAIN = 5000
+    TRAIN = 50000
     start = time.time()
     for i in range(TRAIN):
         tx, ty = mp.random_negative()
         print(tx,ty)
-        fname = layers.maxar.download(tx, ty, IMZ)           
-        wgs = layers.wgs_at_tile(tx, ty, IMZ)
-        lat = helpers.mil(wgs[0])
-        lng = helpers.mil(wgs[1])
-        dst = str(target / f"m_x{tx}y{ty}_{wgs[0]}_{wgs[1]}.jpg")
-        if not os.path.exists(dst):
-            shutil.copy(fname, dst)
+        fname = layers.maxar.download(tx, ty, IMZ)
+        
+#        img = cv2.imread(fname)
+#        cv2.imshow('n = next, b - debug', img)
+#        key = cv2.waitKey(0)
+#        print(chr(key))
+#        if chr(key) == 'b':
+#            print(0)
+            
+#        wgs = layers.wgs_at_tile(tx, ty, IMZ)
+#        lat = helpers.mil(wgs[0])
+#        lng = helpers.mil(wgs[1])
+#        dst = str(target / f"m_x{tx}y{ty}_{wgs[0]}_{wgs[1]}.jpg")
+#        if not os.path.exists(dst):
+#            shutil.copy(fname, dst)
+    cv2.destroyAllWindows()
