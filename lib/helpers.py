@@ -22,7 +22,7 @@ def cleandir(path):
     target = pathlib.Path(path)
     if os.path.isdir(target):
         shutil.rmtree(target)
-    target.mkdir(parents=True, exist_ok=True)
+    target.mkdir(parents=True)
     return target
 
 def outside(point, lefttop, rightbot):
@@ -37,6 +37,7 @@ class MercatorPainter:
     # everything not painted over is supposed to be negative.
     # uses dict for fast lookup (builds itself on first query).
     # also has a function to find a random negative (unpainted) pixel.
+    # if more than 90% of canvas is busy, uses inverted index for random search.
     def __init__(self, layer, W, S, E, N, z):   
         txmin, tymin = layer.tile_at_wgs((N, W), z)
         txmax, tymax = layer.tile_at_wgs((S, E), z)
@@ -52,8 +53,9 @@ class MercatorPainter:
         self.height = tymax-tymin+1
         self.canvas = np.zeros((self.height, self.width), np.uint8)
         
-        self.dict = None
-        self.dups = []
+        self.dict_busy = None
+        self.dict_free = None
+        self.is_busy = False
     
     def wgs2px(self, latlng):
         tx, ty = self.layer.tile_at_wgs(latlng, self.z)
@@ -87,24 +89,37 @@ class MercatorPainter:
         cv2.imshow('canvas', self.canvas)
         cv2.waitKey(0)
     
-    def reindex(self):
+    def build_index(self):
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
             for x in range(self.width):
                 tx = self.txmin + x
-                if self.canvas[y][x] == 255:
+                if self.canvas[y][x] != 255:
                     if tx in d:
                         d[tx].append(ty)
                     else:
                         d[tx] = [ty]
         for k in d:
             d[k] = set(d[k])
-        self.dict = d
+        self.dict_busy = d
+    
+    def build_index_free(self):
+        d = {}
+        for y in range(self.height):
+            ty = self.tymin + y
+            for x in range(self.width):
+                tx = self.txmin + x
+                if self.canvas[y][x] == 0:
+                    if tx in d:
+                        d[tx].append(ty)
+                    else:
+                        d[tx] = [ty]
+        self.dict_free = d
         
     def contains(self, tile, result_outside=True):
-        if self.dict is None:
-            self.reindex()
+        if self.dict_busy is None:
+            self.build_index()
 
         tx, ty = tile
         
@@ -115,41 +130,72 @@ class MercatorPainter:
         if ty >= self.tymin + self.height:
             return result_outside
         
-        if tx in self.dict:
-            if ty in self.dict[tx]:
+        if tx in self.dict_busy:
+            if ty in self.dict_busy[tx]:
                 return True
         return False
     
-    def random_negative(self):     
-        # that's dumb maybe just walk through the dict?
-        limit = 100
+    def random_negative(self):
+        # pick whatever method is faster
+        if self.is_busy:
+            return self.random_free()
+        else:
+            return self.random_busy()
+        
+    def random_busy(self):     
+        if self.dict_busy is None:
+            self.build_index()
+        
         count = 0
         while True:
             count += 1
-            if count > limit:
-                raise ValueError("too much retries")
-
-            tx = random.randrange(self.txmin, self.txmin+self.width) 
-            ty = random.randrange(self.tymin, self.tymin+self.height)
-            tile = (tx, ty) 
-            if self.contains(tile):
+            if count > 10:
+                # after 10 retries we assume the canvas is 90% full and
+                # it's faster to look through free cells rather than busy
+                print("switching indexing")
+                self.is_busy = True
+                return self.random_free()
+                
+            x = random.randrange(self.width) 
+            y = random.randrange(self.height)
+            
+            if self.canvas[y][x] != 0:
                 continue
-            else:
-                self.add_dot_tile(tile)
-                self.dict[tx].add(ty)
-                return tile
+            
+            tx = self.txmin + x
+            ty = self.tymin + y
+            tile = (tx, ty)
+            
+            self.add_dot_tile(tile)
+#            print("adding", tile, "retries", count)
+            self.dict_busy[tx].add(ty)
+            return tile
+
+    def random_free(self):
+        if self.dict_free is None:
+            self.build_index_free()
+            
+        tx = random.choice(list(self.dict_free.keys()))
+        ty = random.choice(self.dict_free[tx])
+        tile = (tx, ty)
+        self.add_dot_tile(tile)
+#        lens = [len(l) for k,l in self.dict_free.items()]
+#        print("adding", tile, "dict_free is", sum(lens))
+        self.dict_free[tx].remove(ty)
+        if self.dict_free[tx] == []:
+            self.dict_free.pop(tx)
+        return tile
         
 if __name__ == "__main__":
-#    box = (27.5682,53.8469,27.5741,53.8688) # south radius
-    box = (27.4026,53.8306,27.7003,53.9739) # whole city
-    lamps = loaders.query_nodes(*box)
-    roads = loaders.query_ways(*box)
+    box = (27.4026,53.8306,27.7003,53.9739)
+    lamps = [(53.85, 27.6), (53.92, 27.5)]
+    roads = [[(53.85, 27.5), (53.92, 27.6)]]
     
-    mp = MercatorPainter(*box)
-    mp.add_dots(lamps)  
+    mp = MercatorPainter(layers.maxar, *box, z=18)
+    mp.add_dots_wgs(lamps)  
     
-    for nodes in roads.values():
-        mp.add_polyline(nodes, width=2)
+    for nodes in roads:
+        mp.add_polyline_wgs(nodes, width=2)
        
     mp.show()
 

@@ -29,8 +29,8 @@ def project2web(latlng):
 def wgs_at_tile(tx, ty, z):
     # converts tile index to EPSG:3857 (0..1) then to EPSG:4326 (degrees)
     scale = 1 << z
-    x = tx / scale
-    y = ty / scale
+    x = (tx + 0.5) / scale
+    y = (ty + 0.5) / scale
     lng = 180 * (2 * x - 1)   
     lat = 180 / math.pi * (2 * math.atan( math.exp( (1 - 2 * y) * math.pi )) - math.pi / 2)
     return (lat,lng)

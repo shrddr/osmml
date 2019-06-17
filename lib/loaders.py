@@ -84,18 +84,7 @@ class Querier:
         self.lasttime = time.time()
         return response
     
-    def query_shape(self, shape, W, S, E, N):
-        fname = f"./overpass/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}_{shape}.json"
-        if os.path.isfile(fname):
-            with open(fname) as json_file:
-                return json.load(json_file)
-            
-        query = f"""(
-          way["building"]["roof:shape"="{shape}"]({S}, {W}, {N}, {E});
-        );
-        out body;
-        >;
-        out skel;"""
+    def get_ways(self, query):
         response = self.get(query, responseformat='json', verbosity='skel')
         
         nodedict = {}
@@ -109,10 +98,63 @@ class Querier:
                 wayid = e['id']
                 nodes = [nodedict[i] for i in e['nodes']]
                 ways.append((wayid, nodes))
+
+        return ways
+    
+    def get_rel_outer_ways(self, query):
+        response = self.get(query, responseformat='json', verbosity='skel')
         
+        nodedict = {}
+        for e in response['elements']:
+            if e['type'] == 'node':
+                nodedict[e['id']] = (e['lat'], e['lon'])
+        
+        ways = []
+        for e in response['elements']:
+            if e['type'] == 'way':
+                wayid = e['id']
+                nodes = [nodedict[i] for i in e['nodes']]
+                ways.append((wayid, nodes))
+
+        return ways
+    
+    def query_shape(self, shape, W, S, E, N):
+        fname = f"./overpass/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}_{shape}.json"
+        if os.path.isfile(fname):
+            with open(fname) as json_file:
+                return json.load(json_file)
+            
+        query = f"""(
+          way["building"]["roof:shape"="{shape}"]({S}, {W}, {N}, {E});
+        );
+        out body;
+        >;
+        out skel;"""
+        
+        ways = self.get_ways(query)
         with open(fname, 'w') as json_file:
             json.dump(ways, json_file)
+            
+        return ways
+    
+    def query_buildings(self, W, S, E, N):
+        fname = f"./overpass/bbox{mil(W)}_{mil(S)}_{mil(E)}_{mil(N)}_buildings.json"
+        if os.path.isfile(fname):
+            with open(fname) as json_file:
+                return json.load(json_file)
+            
+        query = f"""(
+          way["building"]({S}, {W}, {N}, {E});
+          relation["building"]({S}, {W}, {N}, {E});
+        );
+        out body;
+        >;
+        out skel;"""
         
+        ways = self.get_ways(query)
+        with open(fname, 'w') as json_file:
+            json.dump(ways, json_file)
+            
         return ways
         
 if __name__ == "__main__":   

@@ -8,8 +8,6 @@ import tarfile
 from lib import layers
 from lib import loaders
 from lib import helpers
-
-TILESIZE = 256
               
 def mil(fp):
     return math.floor(fp*1000000)
@@ -40,7 +38,7 @@ if __name__ == "__main__":
         if LIMIT is not None:
             ways[cat] = ways[cat][:LIMIT]
         for wayid, nodes in ways[cat]:
-            image = layers.maxar.tiles_way(nodes, IMZ)
+            image = layers.maxar.tiles_way(nodes, IMZ, pad_pct=0.25, pad_px=48)
 #            print(image.shape)
             if helpers.outside(image.shape[:2], (128,128), (1024,1024)):
                 continue
