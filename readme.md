@@ -1,4 +1,4 @@
-This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. I tend to use Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary.
+This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. I tend to use [Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary.
 
 The training uses resnet34 architecture with fast.ai library.
 
@@ -62,6 +62,8 @@ The thing is, when I looked closer, all these runs had input data _resized_, not
 
 ### Random crop
 
+![Random crop](readme-images/random_crop.png)
+
 Training set cropping seems important for real-life applications, because input at inference time will include streetlamps at any part of a tile, not just center of it. The intuition behind that is the network should encounter as much variance in train data as possible. Validation set still contains original tiles. Random cropping turned out tricky in fast.ai, here's what I came up with:
 
 ```
@@ -106,6 +108,8 @@ I have no idea what's going on, but it stops with any other `size` parameter val
 
 Task: classify [roof:shape](https://wiki.openstreetmap.org/wiki/Simple_3D_buildings#Roof_shape)=gabled, hipped, or flat.
 
+![Roofshapes](readme-images/roofshapes.png)
+
 Input: varies (see table)
 
 | Input size    | Frozen, 8 epoch train | Unfreeze, 8 epochs | 8 more epochs |
@@ -120,6 +124,8 @@ Input: varies (see table)
 # Buildings
 
 Task: classify tiles with any type of building(s) vs. tiles with no buildings at all.
+
+![Buildings: yes/no](readme-images/buildings_yes_no.png)
 
 Input: 5700 images of both categories, 20% validation
 
