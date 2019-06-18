@@ -38,7 +38,7 @@ class MercatorPainter:
     # uses dict for fast lookup (builds itself on first query).
     # also has a function to find a random negative (unpainted) pixel.
     # if more than 90% of canvas is busy, uses inverted index for random search.
-    def __init__(self, layer, W, S, E, N, z):   
+    def __init__(self, layer, W, S, E, N, z):
         txmin, tymin = layer.tile_at_wgs((N, W), z)
         txmax, tymax = layer.tile_at_wgs((S, E), z)
         area = (txmax-txmin, tymax-tymin)
@@ -83,19 +83,29 @@ class MercatorPainter:
     def add_polyline_wgs(self, latlngs, width):
         pixels = [self.wgs2px(l) for l in latlngs]
         pixels = np.array(pixels)
-        cv2.polylines(self.canvas, [pixels], False, 255, width)
+        # lineType means 4-connected or 8-connected
+        cv2.polylines(self.canvas, [pixels], False, 255, width, lineType=4)
         
     def show(self):
+        # displays the canvas at native resolution
         cv2.imshow('canvas', self.canvas)
+        cv2.waitKey(0)
+        
+    def show_fixedwindow(self, h, w):
+        # displays the canvas resized to specified dimensions
+        cv2.namedWindow('canvas-fixed', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('canvas-fixed', h, w)
+        cv2.imshow('canvas-fixed', self.canvas)
         cv2.waitKey(0)
     
     def build_index(self):
+        # creates lookup dict of occupied pixels
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
             for x in range(self.width):
                 tx = self.txmin + x
-                if self.canvas[y][x] != 255:
+                if self.canvas[y][x] != 0:
                     if tx in d:
                         d[tx].append(ty)
                     else:
@@ -105,6 +115,7 @@ class MercatorPainter:
         self.dict_busy = d
     
     def build_index_free(self):
+        # creates lookup dict of non-occupied pixels
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
@@ -136,13 +147,15 @@ class MercatorPainter:
         return False
     
     def random_negative(self):
-        # pick whatever method is faster
+        # returns a random free pixel and marks it busy
+        # uses one method whichever is faster
         if self.is_busy:
             return self.random_free()
         else:
             return self.random_busy()
         
-    def random_busy(self):     
+    def random_busy(self):
+        # propose random, check if it's occupied, repeat
         if self.dict_busy is None:
             self.build_index()
         
@@ -151,12 +164,12 @@ class MercatorPainter:
             count += 1
             if count > 10:
                 # after 10 retries we assume the canvas is 90% full and
-                # it's faster to look through free cells rather than busy
+                # it's faster to look through free cells rather than occupied
                 print("switching indexing")
                 self.is_busy = True
                 return self.random_free()
                 
-            x = random.randrange(self.width) 
+            x = random.randrange(self.width)
             y = random.randrange(self.height)
             
             if self.canvas[y][x] != 0:
@@ -170,8 +183,15 @@ class MercatorPainter:
 #            print("adding", tile, "retries", count)
             self.dict_busy[tx].add(ty)
             return tile
+        
+    def random_check(self, tx, ty):
+        # use for debugging
+        x = tx - self.txmin
+        y = ty - self.tymin
+        print(x, y, "free =", self.canvas[y][x] == 0)
 
     def random_free(self):
+        # use dict of free pixels
         if self.dict_free is None:
             self.build_index_free()
             

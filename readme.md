@@ -1,8 +1,10 @@
+This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. I tend to use Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary.
+
+The training uses resnet34 architecture with fast.ai library.
+
 # Streetlamps
 
-These scripts prepare the data to teach a classification network which tells apart satellite imagery tiles with [streetlamp](https://wiki.openstreetmap.org/wiki/Tag:highway%3Dstreet_lamp)s or with no streetlamps. 
-
-The tests below only use the latest and the clearest imagery layer for my location. That is [Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer at z=19. The dataset contains 10000 samples with 5000 in each category. The training uses resnet34 with fast.ai library. Every run starts with top layers frozen, 1 epoch train to learn the categories. After that follows an `unfreeze` call and training continues until the validation error stabilizes.
+Task: Classify imagery tiles with [streetlamp](https://wiki.openstreetmap.org/wiki/Tag:highway%3Dstreet_lamp)s vs. no streetlamps. 
 
 ## Original tiles
 
@@ -102,11 +104,30 @@ I have no idea what's going on, but it stops with any other `size` parameter val
 
 # Roofshapes
 
-|               | Frozen, 8 epoch train | Unfreeze, 8 epochs | 8 more epochs |
+Task: classify [roof:shape](https://wiki.openstreetmap.org/wiki/Simple_3D_buildings#Roof_shape)=gabled, hipped, or flat.
+
+Input: varies (see table)
+
+| Input size    | Frozen, 8 epoch train | Unfreeze, 8 epochs | 8 more epochs |
 | ------------- | --------------------- | ------------------ | ------------- |
 | 712/712/712   | 6.3%                  | 5.6%               | 5.1%          |
-| 715/1469/4262 | 5.5-5.6%              | 4.8-5.0%           | 4.6-4.7%      |
+| 715/1469/4262 | 5.6%                  | 4.9%               | 4.6%          |
 |               | 5.9%                  | 4.9%               | 4.3%          |
 | 882/1403/4022 | 4.2%                  | 2.8%               | 3.0%          |
-|               | 4.3                   | 3.6                | 3.5           |
-|               | 4.9                   | 3.2                | 3.0           |
+|               | 4.3%                  | 3.6%               | 3.5%          |
+|               | 4.9%                  | 3.2%               | 3.0%          |
+
+# Buildings
+
+Task: classify tiles with any type of building(s) vs. tiles with no buildings at all.
+
+Input: 5700 images of both categories, 20% validation
+
+|                              | Frozen, 4 epoch train | Unfreeze, 6 epochs | 8 more epochs |
+| ---------------------------- | --------------------- | ------------------ | ------------- |
+| 256 no flip no rotation      | 3.0%                  | 3.0%               |               |
+| 256 no flip full 20 rotation | 2.3%                  | 2.7%               |               |
+| 256 no flip full 40 rotation |                       |                    |               |
+|                              |                       |                    |               |
+|                              |                       |                    |               |
+|                              |                       |                    |               |

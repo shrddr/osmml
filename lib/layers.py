@@ -46,12 +46,14 @@ class Imagery:
         self.tiledir = Path("../tiles") / name
     
     def tilefile(self, x, y, z):
+        # combines tile indices into filename string
         path = self.tiledir / f"z{z}"
         if not os.path.exists(path):
             os.makedirs(path)
         return path / f"x{x}y{y}.jpg"
         
     def xy_fromfile(self, path):
+        # parses filename string into tile indices
         f = path.name
         xpos = f.index('x')
         ypos = f.index('y')
@@ -61,13 +63,14 @@ class Imagery:
         return (int(sx), int(sy))
         
     def tileurl(self, x, y, z):
+        # combines tile indices into imagery provider URL
         scale = 1 << z
         if self.flipy:
             y = scale - y - 1
         return self.url.format(z=z, x=x, y=y)
     
     def download(self, x, y, z):
-        # returns tile at index (as filename)
+        # returns tile at index (as filename string)
         fname = self.tilefile(x, y, z)
         if not os.path.isfile(fname):
             url = self.tileurl(x, y, z)
@@ -112,7 +115,7 @@ class Imagery:
         return (tx, ty)
     
     def gettile_wgs(self, latlng, z, skipedge=False, edge=16):
-        # returns tile at location (as filename)
+        # returns tile at location (as filename string)
         # returns None if skipedge is enabled and location is indeed close to edge 
         scale = 1 << z
         wc = project2web(latlng)
@@ -237,8 +240,8 @@ class Imagery:
         return crop
 
     def tiles_way(self, way, z, pad_pct=0.25, pad_px=48):
-        # takes way as a list of nodes with WGS coords
-        # takes relative (%) and absolute (px) padding
+        # accepts way as list of nodes with WGS coords
+        # accepts relative (%) and absolute (px) padding
         # returns 2d array of tiles to cover the whole way plus padding
         wcs = [project2web(p) for p in way]
         xs = [wc[0] for wc in wcs]
