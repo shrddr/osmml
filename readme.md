@@ -110,7 +110,7 @@ Task: classify [roof:shape](https://wiki.openstreetmap.org/wiki/Simple_3D_buildi
 
 ![Roofshapes](readme-images/roofshapes.png)
 
-Input: varies (see table)
+Input: varies (see table). As expected, the more the better!
 
 | Input size    | Frozen, 8 epoch train | Unfreeze, 8 epochs | 8 more epochs |
 | ------------- | --------------------- | ------------------ | ------------- |
@@ -127,13 +127,17 @@ Task: classify tiles with any type of building(s) vs. tiles with no buildings at
 
 ![Buildings: yes/no](readme-images/buildings_yes_no.png)
 
-Input: 5700 images of both categories, 20% validation
+Input: 5700 images of both categories, 20% validation.
 
-|                              | Frozen, 4 epoch train | Unfreeze, 6 epochs | 8 more epochs |
-| ---------------------------- | --------------------- | ------------------ | ------------- |
-| 256 no flip no rotation      | 3.0%                  | 3.0%               |               |
-| 256 no flip full 20 rotation | 2.3%                  | 2.7%               |               |
-| 256 no flip full 40 rotation |                       |                    |               |
-|                              |                       |                    |               |
-|                              |                       |                    |               |
-|                              |                       |                    |               |
+## First attempt
+
+For every node of every building, fetch the tile it belongs to. Don't use the tile if the node is closer than 16px to the edge (that would present only a tiny part of the building).
+
+|                                  | Frozen, 4 epoch train | Unfreeze, 6 epochs | 8 more epochs |
+| -------------------------------- | --------------------- | ------------------ | ------------- |
+| size=256 no flip, max_rotate=0   | 3.0%                  | 3.0%               |               |
+| size=256 no flip, max_rotate=20  | 2.3%                  | 2.7%               |               |
+| size=256, no flip, max_rotate=40 | 3.3%                  | 3.3%               |               |
+|                                  |                       |                    |               |
+|                                  |                       |                    |               |
+|                                  |                       |                    |               |
