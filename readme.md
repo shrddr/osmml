@@ -1,6 +1,6 @@
 This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. I tend to use [Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary.
 
-The training uses resnet34 architecture with fast.ai library.
+The training uses resnet34 architecture with fast.ai library. Every table below lists `error_rate` metric, which is just a percentage of incorrect predictions on the validation set.
 
 # Streetlamps
 
@@ -25,11 +25,11 @@ tfms = get_transforms(do_flip=False, max_warp=0, max_zoom=0, max_rotate=0)
 data = ImageDataBunch.from_folder(path, train=".", valid_pct=0.1, ds_tfms=tfms, size=224)
 learn = cnn_learner(data, models.resnet34, metrics=error_rate)
 # LR is learning rate, use learn.lr_find() to estimate
-learn.fit_one_cycle(1, max_lr=7e-2)
+learn.fit_one_cycle(4, max_lr=7e-2)
 learn.unfreeze()
 # slice notation means linear increase between deepest and top layer
-learn.fit_one_cycle(2, max_lr=slice(2e-6,2e-4))
-learn.fit_one_cycle(2, max_lr=slice(4e-7,4e-5))
+learn.fit_one_cycle(4, max_lr=slice(2e-6,2e-4))
+learn.fit_one_cycle(4, max_lr=slice(4e-7,4e-5))
 ```
 
 This dataset converges to 3% error. There must be another way to do this!
