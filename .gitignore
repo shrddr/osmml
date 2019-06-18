@@ -3,6 +3,7 @@ lamps-orig/
 lamps-center/
 lamps-expand/
 roofshapes/
+buildings/
 *.avi
 *.json
 *.tar
