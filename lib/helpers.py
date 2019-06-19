@@ -1,3 +1,4 @@
+import re
 import cv2
 import math
 import random
@@ -80,11 +81,19 @@ class MercatorPainter:
         p2 = self.wgs2px(latlng2)
         cv2.line(self.canvas, p1, p2, 255, width)
     
-    def add_polyline_wgs(self, latlngs, width):
-        pixels = [self.wgs2px(l) for l in latlngs]
+    def add_polyline_wgs(self, latlngs, width=1):
+        pixels = [self.wgs2px(ll) for ll in latlngs]
         pixels = np.array(pixels)
         # lineType means 4-connected or 8-connected
-        cv2.polylines(self.canvas, [pixels], False, 255, width, lineType=4)
+        cv2.polylines(self.canvas, [pixels], True, 255, width, lineType=4)
+        
+    def add_fillpoly_wgs(self, latlngs, width=1):
+        print(latlngs)
+        pixels = [self.wgs2px(ll) for ll in latlngs]
+        print(pixels)
+        pixels = np.array(pixels)
+        # lineType means 4-connected or 8-connected
+        cv2.fillPoly(self.canvas, [pixels], 255, lineType=4)
         
     def show(self):
         # displays the canvas at native resolution
@@ -93,6 +102,7 @@ class MercatorPainter:
         
     def show_fixedwindow(self, h, w):
         # displays the canvas resized to specified dimensions
+        # useful for very small or large maps
         cv2.namedWindow('canvas-fixed', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('canvas-fixed', h, w)
         cv2.imshow('canvas-fixed', self.canvas)
@@ -207,16 +217,23 @@ class MercatorPainter:
         return tile
         
 if __name__ == "__main__":
-    box = (27.4026,53.8306,27.7003,53.9739)
-    lamps = [(53.85, 27.6), (53.92, 27.5)]
-    roads = [[(53.85, 27.5), (53.92, 27.6)]]
+#    box = (27.4026,53.8306,27.7003,53.9739)
+#    lamps = [(53.85, 27.6), (53.92, 27.5)]
+#    roads = [[(53.85, 27.5), (53.92, 27.6)]]
+#    
+#    mp = MercatorPainter(layers.maxar, *box, z=18)
+#    mp.add_dots_wgs(lamps)  
+#    
+#    for nodes in roads:
+#        mp.add_polyline_wgs(nodes, width=2)
+#       
+#    mp.show()
+#
+#    print(mp.contains((302304, 168755)))
     
-    mp = MercatorPainter(layers.maxar, *box, z=18)
-    mp.add_dots_wgs(lamps)  
-    
-    for nodes in roads:
-        mp.add_polyline_wgs(nodes, width=2)
-       
-    mp.show()
-
-    print(mp.contains((302304, 168755)))
+    s = """POLYGON ((27.590317726135254 53.83925981221627, 27.591540813446045 53.837525198055296, 27.598965167999268 53.83652491343047, 27.59769916534424 53.83890529837573, 27.593021392822266 53.84100701515295, 27.590317726135254 53.83925981221627))
+             POLYGON ((27.52676010131836 53.87231769137863, 27.52371311187744 53.869939206161845, 27.5392484664917 53.86017081679297, 27.558088302612305 53.85801944014527, 27.560791969299316 53.86885113060123, 27.55173683166504 53.87188754981568, 27.53920555114746 53.872849036613374, 27.52676010131836 53.87231769137863))"""
+    nums = re.findall(r'\d+(?:\.\d*)?', s.rpartition(',')[0])
+    coords = zip(*[iter(nums)] * 2)
+    for c in coords:
+        print(c)
