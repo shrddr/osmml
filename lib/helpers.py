@@ -32,7 +32,7 @@ def outside(point, lefttop, rightbot):
         or point[1] < lefttop[1] \
         or point[0] >= rightbot[0] \
         or point[1] >= rightbot[1]
-
+    
 class MercatorPainter:
     # paints an area with dots and lines representing positive examples.
     # everything not painted over is supposed to be negative.
@@ -87,10 +87,8 @@ class MercatorPainter:
         # lineType means 4-connected or 8-connected
         cv2.polylines(self.canvas, [pixels], True, 255, width, lineType=4)
         
-    def add_fillpoly_wgs(self, latlngs, width=1):
-        print(latlngs)
+    def add_fillpoly_wgs(self, latlngs):
         pixels = [self.wgs2px(ll) for ll in latlngs]
-        print(pixels)
         pixels = np.array(pixels)
         # lineType means 4-connected or 8-connected
         cv2.fillPoly(self.canvas, [pixels], 255, lineType=4)
@@ -109,7 +107,7 @@ class MercatorPainter:
         cv2.waitKey(0)
     
     def build_index(self):
-        # creates lookup dict of occupied pixels
+        # creates dict of occupied pixels for fast lookup
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
@@ -125,7 +123,7 @@ class MercatorPainter:
         self.dict_busy = d
     
     def build_index_free(self):
-        # creates lookup dict of non-occupied pixels
+        # creates dict of non-occupied pixels for even faster lookup
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
@@ -215,6 +213,17 @@ class MercatorPainter:
         if self.dict_free[tx] == []:
             self.dict_free.pop(tx)
         return tile
+    
+def latlngs_from_wkt(string):
+    latlngs = []
+    polys = string.splitlines()
+    for poly in polys:
+        strs = re.findall(r"[-]?\d*\.\d+|\d+", poly)
+        nums = list(map(float, strs))
+        lngs = nums[::2]
+        lats = nums[1::2]
+        latlngs.append(list(zip(lats,lngs)))
+    return latlngs
         
 if __name__ == "__main__":
 #    box = (27.4026,53.8306,27.7003,53.9739)
@@ -231,9 +240,6 @@ if __name__ == "__main__":
 #
 #    print(mp.contains((302304, 168755)))
     
-    s = """POLYGON ((27.590317726135254 53.83925981221627, 27.591540813446045 53.837525198055296, 27.598965167999268 53.83652491343047, 27.59769916534424 53.83890529837573, 27.593021392822266 53.84100701515295, 27.590317726135254 53.83925981221627))
-             POLYGON ((27.52676010131836 53.87231769137863, 27.52371311187744 53.869939206161845, 27.5392484664917 53.86017081679297, 27.558088302612305 53.85801944014527, 27.560791969299316 53.86885113060123, 27.55173683166504 53.87188754981568, 27.53920555114746 53.872849036613374, 27.52676010131836 53.87231769137863))"""
-    nums = re.findall(r'\d+(?:\.\d*)?', s.rpartition(',')[0])
-    coords = zip(*[iter(nums)] * 2)
-    for c in coords:
-        print(c)
+    s = """POLYGON ((1.1 .2, 1 2.2, 1 -2.2))
+             POLYGON ((1 2, 1 2, 1 2))"""
+    print(latlngs_from_wkt(s))
