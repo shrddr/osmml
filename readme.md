@@ -1,6 +1,10 @@
-This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. I tend to use [Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary.
+This is a collection of scripts to generate machine learning training images using OpenStreetMap data and satellite imagery providers. The scripts scan through certain objects in a specified area (defined by bounding box) and generate a .tar file with images, labeled by folder names. Upload that to your NVidia farm and train.
+
+I tend to use [Maxar](https://github.com/osmlab/editor-layer-index/pull/655) layer because it's recent, crispy, and shot at almost vertical angle. At other locations results may vary. You can add new imagery providers to `layers.py`.
 
 The training uses resnet34 architecture with fast.ai library. Every table below lists `error_rate` metric, which is just a percentage of incorrect predictions on the validation set.
+
+If you have a high error rate, fast.ai provides a great debugging tool `top_losses()`. It will give you images that confuse the net for some reason. It translates into unmapped areas or outdated imagery (or a bug in data collection script).
 
 # Streetlamps
 
@@ -135,9 +139,9 @@ For every node of every building, fetch the tile it belongs to. Don't use the ti
 
 |                                  | Frozen, 4 epoch train | Unfreeze, 6 epochs | 8 more epochs |
 | -------------------------------- | --------------------- | ------------------ | ------------- |
-| size=256 no flip, max_rotate=0   | 3.0%                  | 3.0%               |               |
-| size=256 no flip, max_rotate=20  | 2.3%                  | 2.7%               |               |
+| size=256, no flip, max_rotate=0  | 3.0%                  | 3.0%               |               |
+| size=256, no flip, max_rotate=20 | 2.3%                  | 2.7%               |               |
 | size=256, no flip, max_rotate=40 | 3.3%                  | 3.3%               |               |
-|                                  |                       |                    |               |
+| size=256, no flip, max_rotate=20 | 2.5%                  |                    |               |
 |                                  |                       |                    |               |
 |                                  |                       |                    |               |

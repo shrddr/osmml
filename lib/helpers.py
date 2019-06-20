@@ -1,3 +1,4 @@
+import re
 import cv2
 import math
 import random
@@ -31,7 +32,7 @@ def outside(point, lefttop, rightbot):
         or point[1] < lefttop[1] \
         or point[0] >= rightbot[0] \
         or point[1] >= rightbot[1]
-
+    
 class MercatorPainter:
     # paints an area with dots and lines representing positive examples.
     # everything not painted over is supposed to be negative.
@@ -80,11 +81,17 @@ class MercatorPainter:
         p2 = self.wgs2px(latlng2)
         cv2.line(self.canvas, p1, p2, 255, width)
     
-    def add_polyline_wgs(self, latlngs, width):
-        pixels = [self.wgs2px(l) for l in latlngs]
+    def add_polyline_wgs(self, latlngs, width=1):
+        pixels = [self.wgs2px(ll) for ll in latlngs]
         pixels = np.array(pixels)
         # lineType means 4-connected or 8-connected
-        cv2.polylines(self.canvas, [pixels], False, 255, width, lineType=4)
+        cv2.polylines(self.canvas, [pixels], True, 255, width, lineType=4)
+        
+    def add_fillpoly_wgs(self, latlngs):
+        pixels = [self.wgs2px(ll) for ll in latlngs]
+        pixels = np.array(pixels)
+        # lineType means 4-connected or 8-connected
+        cv2.fillPoly(self.canvas, [pixels], 255, lineType=4)
         
     def show(self):
         # displays the canvas at native resolution
@@ -93,13 +100,14 @@ class MercatorPainter:
         
     def show_fixedwindow(self, h, w):
         # displays the canvas resized to specified dimensions
+        # useful for very small or large maps
         cv2.namedWindow('canvas-fixed', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('canvas-fixed', h, w)
         cv2.imshow('canvas-fixed', self.canvas)
         cv2.waitKey(0)
     
     def build_index(self):
-        # creates lookup dict of occupied pixels
+        # creates dict of occupied pixels for fast lookup
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
@@ -115,7 +123,7 @@ class MercatorPainter:
         self.dict_busy = d
     
     def build_index_free(self):
-        # creates lookup dict of non-occupied pixels
+        # creates dict of non-occupied pixels for even faster lookup
         d = {}
         for y in range(self.height):
             ty = self.tymin + y
@@ -205,18 +213,33 @@ class MercatorPainter:
         if self.dict_free[tx] == []:
             self.dict_free.pop(tx)
         return tile
+    
+def latlngs_from_wkt(string):
+    latlngs = []
+    polys = string.splitlines()
+    for poly in polys:
+        strs = re.findall(r"[-]?\d*\.\d+|\d+", poly)
+        nums = list(map(float, strs))
+        lngs = nums[::2]
+        lats = nums[1::2]
+        latlngs.append(list(zip(lats,lngs)))
+    return latlngs
         
 if __name__ == "__main__":
-    box = (27.4026,53.8306,27.7003,53.9739)
-    lamps = [(53.85, 27.6), (53.92, 27.5)]
-    roads = [[(53.85, 27.5), (53.92, 27.6)]]
+#    box = (27.4026,53.8306,27.7003,53.9739)
+#    lamps = [(53.85, 27.6), (53.92, 27.5)]
+#    roads = [[(53.85, 27.5), (53.92, 27.6)]]
+#    
+#    mp = MercatorPainter(layers.maxar, *box, z=18)
+#    mp.add_dots_wgs(lamps)  
+#    
+#    for nodes in roads:
+#        mp.add_polyline_wgs(nodes, width=2)
+#       
+#    mp.show()
+#
+#    print(mp.contains((302304, 168755)))
     
-    mp = MercatorPainter(layers.maxar, *box, z=18)
-    mp.add_dots_wgs(lamps)  
-    
-    for nodes in roads:
-        mp.add_polyline_wgs(nodes, width=2)
-       
-    mp.show()
-
-    print(mp.contains((302304, 168755)))
+    s = """POLYGON ((1.1 .2, 1 2.2, 1 -2.2))
+             POLYGON ((1 2, 1 2, 1 2))"""
+    print(latlngs_from_wkt(s))

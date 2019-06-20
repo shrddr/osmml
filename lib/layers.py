@@ -7,6 +7,9 @@ import requests
 import numpy as np
 from pathlib import Path
 
+# every WGS coord here is (LATITUDE, LONGITUDE) - note the order!
+# LAT means up-down/north-south, LNG means left-right/west-east
+
 TILESIZE = 256
 
 def get_or_sleep(sess, url, t=0.1):
@@ -115,8 +118,8 @@ class Imagery:
         return (tx, ty)
     
     def gettile_wgs(self, latlng, z, skipedge=False, edge=16):
-        # returns tile at location (as filename string)
-        # returns None if skipedge is enabled and location is indeed close to edge 
+        # returns tile at WGS point (as filename string)
+        # returns None if skipedge is enabled and the point is indeed close to edge 
         scale = 1 << z
         wc = project2web(latlng)
         # pixel in world
@@ -126,14 +129,14 @@ class Imagery:
         tx = math.floor(px / TILESIZE)
         ty = math.floor(py / TILESIZE)
         # pixel in tile
-        rx = (px - tx) % TILESIZE
-        ry = (py - ty) % TILESIZE
+        rx = px - tx * TILESIZE
+        ry = py - ty * TILESIZE
 
         if skipedge:
-            edge = (rx < edge) or (rx >= TILESIZE-edge) \
-                or (ry < edge) or (ry >= TILESIZE-edge)
-            if edge:
-                print("edge")
+            outlier = (rx < edge) or (rx >= TILESIZE-edge) \
+                   or (ry < edge) or (ry >= TILESIZE-edge)      
+            if outlier:
+                print("outlier")
                 return None
         
         fname = self.download(tx, ty, z)

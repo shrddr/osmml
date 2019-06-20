@@ -39,17 +39,11 @@ if __name__ == "__main__":
             ways[cat] = ways[cat][:LIMIT]
         for wayid, nodes in ways[cat]:
             image = layers.maxar.tiles_way(nodes, IMZ, pad_pct=0.25, pad_px=48)
-#            print(image.shape)
             if helpers.outside(image.shape[:2], (128,128), (1024,1024)):
                 continue
-#            cv2.imshow('crop', image)
-#            cv2.waitKey(0)
-#            cv2.destroyAllWindows()
             dst = str(target / f"m{wayid}.jpg")
             cv2.imwrite(dst, image)
-#            image = layers.dg.tiles_way(nodes, IMZ)
-#            dst = str(target / f"d{wayid}.jpg")
-#            cv2.imwrite(dst, image)
+
             
     tarball = "./roofshapes.tar"
     if os.path.exists(tarball):
