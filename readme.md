@@ -131,17 +131,30 @@ Task: classify tiles with any type of building(s) vs. tiles with no buildings at
 
 ![Buildings: yes/no](readme-images/buildings_yes_no.png)
 
-Input: 5700 images of both categories, 20% validation.
+
 
 ## First attempt
 
-For every node of every building, fetch the tile it belongs to. Don't use the tile if the node is closer than 16px to the edge (that would present only a tiny part of the building).
+For every node of every building, fetch the tile it belongs to. Don't use the tile if the node is closer than 16px to the edge (that would present only a tiny part of the building). This script also accepts "excluded areas" input where satellite imagery is outdated, to minimize false training examples.
 
-|                                  | Frozen, 4 epoch train | Unfreeze, 6 epochs | 8 more epochs |
-| -------------------------------- | --------------------- | ------------------ | ------------- |
-| size=256, no flip, max_rotate=0  | 3.0%                  | 3.0%               |               |
-| size=256, no flip, max_rotate=20 | 2.3%                  | 2.7%               |               |
-| size=256, no flip, max_rotate=40 | 3.3%                  | 3.3%               |               |
-| size=256, no flip, max_rotate=20 | 2.5%                  |                    |               |
-|                                  |                       |                    |               |
-|                                  |                       |                    |               |
+Input: 5700 images of both categories, 20% validation.
+
+|                                  | Frozen, 4 epoch train | Unfreeze, 4 epochs |
+| -------------------------------- | --------------------- | ------------------ |
+| size=256, no flip, max_rotate=0  |                       |                    |
+| size=256, no flip, max_rotate=20 |                       |                    |
+| size=256, no flip, max_rotate=40 | 2.1%                  | 1.9%               |
+|                                  |                       |                    |
+|                                  |                       |                    |
+
+Input: 10000 images of both categories, 20% validation.
+
+|                                  | Frozen, 4 epoch train | Unfreeze, 4 epochs |
+| -------------------------------- | --------------------- | ------------------ |
+| size=256, no flip, max_rotate=0  |                       |                    |
+| size=256, no flip, max_rotate=20 |                       |                    |
+| size=256, no flip, max_rotate=40 | 1.3%                  | 1.3%               |
+|                                  | 2.0                   | 2.0                |
+|                                  | 1.9                   | 1.7                |
+|                                  | 2.0                   | 1.9                |
+|                                  | 1.8                   | 1.6                |

@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ways = q.query_buildings(*box_minsk)
     
     IMZ = 18
-    LIMIT = 10000
+    LIMIT = 5000
     count = 0
     target = helpers.cleandir(f"buildings/yes")
     for wayid,nodes in ways:
@@ -52,6 +52,9 @@ if __name__ == "__main__":
     mp = helpers.MercatorPainter(layers.maxar, *box_minsk, IMZ)
     for _, nodes in ways:
         mp.add_polyline_wgs(nodes)
+    # FIXME: painter expands area to a whole number of tiles
+    # and marks the border tile free even if there are
+    # buildings in the expansion band
     for poly in outdated_polys:
         mp.add_fillpoly_wgs(poly)
     
